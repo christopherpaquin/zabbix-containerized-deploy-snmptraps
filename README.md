@@ -36,6 +36,8 @@ sudo firewall-cmd --reload
 
 To protect sensitive credentials and local network settings, all configuration is stored in `vars.env`. This file is ignored by Git.
 
+CRITICAL: Ensure your .gitignore includes vars.env to prevent committing secrets to your repository.
+
 ### Setup Instructions
 
 1.  Create the file: `vim vars.env`
@@ -142,6 +144,8 @@ If traps do not appear in **Monitoring > Latest Data**, follow this flow:
 | **Receiver** | Is the container receiving data? | `podman logs zabbix-snmptraps` |
 | **Storage** | Is the trap written to the log? | `cat /var/lib/zabbix/snmptraps/snmptraps.log` |
 | **Server** | Is there an IP mismatch? | `podman logs zabbix-server-pgsql | grep unmatched` |
+
+Note: If "unmatched" appears, the Source IP of the trap does not match the IP configured in the Web UI.
 
 ### Manual Injection Test
 
