@@ -24,7 +24,8 @@ The architecture is specifically designed to handle **SNMP Traps** through a sha
 * **Podman** installed and running.
 * **net-snmp-utils** installed on the host (for testing).
 
-
+<br>
+<br>
 
 
 ### Configuration (`vars.env`)
@@ -34,6 +35,10 @@ The architecture is specifically designed to handle **SNMP Traps** through a sha
 To protect sensitive credentials and local network settings, all configuration is stored in `vars.env`. This file is ignored by Git.
 
 CRITICAL: Ensure your .gitignore includes vars.env to prevent committing secrets to your repository.
+
+
+<br>
+<br>
 
 ### Setup Instructions
 
@@ -76,8 +81,10 @@ POD_NAME="zabbix-pod"
 Cleanup & Reset Options
 This step can be skipped for the initial deployment, but should be run on and subsequent deployments
 
+<br>
 The cleanup script supports two modes:
 
+<br>
 Standard Cleanup: Removes containers/pods but preserves your Zabbix configuration and database.
 
 
@@ -89,7 +96,7 @@ Standard Cleanup: Removes containers/pods but preserves your Zabbix configuratio
 ```
 
 
-
+<br>
 Factory Reset: Removes containers and deletes all data (database, hosts, and logs). Use this to start from a completely blank Zabbix install.
 
 
@@ -103,32 +110,32 @@ Factory Reset: Removes containers and deletes all data (database, hosts, and log
 
 
 
-
+<br>
 ### Step 2: Deploy
 
 This script handles directory creation, security labeling (SELinux), and container orchestration.
 
 
 
-
+<br>
 ```
 ./deploy-zabbix.bash
 
 ```
 
-
+<br>
 ### Step 3: Health Check
 Verify that all containers are running and verify that the internal "SNMP Trapper" process is active within the server container.
 
 
-
+<br>
 ```
 ./check-zabbix-health.bash
 
 ```
 
 
-
+<br>
 ## Zabbix Web UI Configuration
 
 
@@ -145,7 +152,7 @@ Verify that all containers are running and verify that the internal "SNMP Trappe
 
 
 
-
+<br>
 ```
 # Update Now" button for the Zabbix Server's internal brain
 podman exec zabbix-server-pgsql zabbix_server -R config_cache_reload
@@ -153,10 +160,10 @@ podman exec zabbix-server-pgsql zabbix_server -R config_cache_reload
 ```
 
 
-
+<br>
 ## Troubleshooting & Verification
 
-
+<br>
 ### The Troubleshooting Chain
 
 If traps do not appear in **Monitoring > Latest Data**, follow this flow:
@@ -171,9 +178,9 @@ If traps do not appear in **Monitoring > Latest Data**, follow this flow:
 Note: If "unmatched" appears, the Source IP of the trap does not match the IP configured in the Web UI.
 
 
-
+<br>
 ### Manual Injection Test
-
+<br>
 Use the included test script to verify the pipeline from the local host:
 
 
