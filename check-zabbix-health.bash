@@ -13,9 +13,11 @@ for c in postgres-server zabbix-snmptraps zabbix-server-pgsql zabbix-web-nginx-p
     fi
 done
 
-# Check SNMP Trapper Process
-TRAP_PROC=$(podman exec zabbix-server-pgsql ps aux | grep -v grep | grep "snmp trapper" || true)
-if [ ! -z "$TRAP_PROC" ]; then
+# IMPROVED SNMP Trapper Check
+# This looks for the process itself, ignoring the dynamic status text in brackets
+TRAP_PROC=$(podman exec zabbix-server-pgsql ps aux | grep "snmp trapper" | grep -v "grep" || true)
+
+if [[ $TRAP_PROC == *"snmp trapper"* ]]; then
     printf "%-30s | [OK]\n" "Internal SNMP Trapper"
 else
     printf "%-30s | [FAIL]\n" "Internal SNMP Trapper"
