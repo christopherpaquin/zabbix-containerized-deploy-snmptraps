@@ -195,6 +195,9 @@ Note: If "unmatched" appears, the Source IP of the trap does not match the IP co
 
 Use the included test script to verify the pipeline from the local host:
 
+For testing, the var *TEST_SENDER_IP="10.x.x.x"* should match the IP added in the Zabbix Config.
+
+
 
 
 
