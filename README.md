@@ -1,4 +1,4 @@
-# Zabbix 7.2 Containerized SNMP Trap Laboratory
+# Zabbix 7.2 Containerized SNMP Trap Deploy
 
 
 
@@ -6,6 +6,8 @@
 ## Overview
 
 This repository contains a code to deploy a containerized Zabbix 7.2 monitoring stack deployed via **Podman**. 
+
+This code has been tested only on RHEL 10.1
 
 The architecture is specifically designed to handle **SNMP Traps** through a shared-volume "trapper" pattern. This ensures that trap data is received by a lightweight listener and processed by the core Zabbix engine without the need for complex internal networking.
 
@@ -20,13 +22,7 @@ The architecture is specifically designed to handle **SNMP Traps** through a sha
 ## Prerequisites
 * **Podman** installed and running.
 * **net-snmp-utils** installed on the host (for testing).
-* **Firewall Permissions:** Port `162/UDP` must be open to allow external traps.
 
-```bash
-sudo firewall-cmd --add-port=162/udp --permanent
-sudo firewall-cmd --reload
-
-```
 
 * * * * *
 
@@ -76,6 +72,8 @@ POD_NAME="zabbix-pod"
 ### Step 1: Cleanup
 
 Step 1: Cleanup & Reset Options
+This step can be skipped for the initial deployment, but should be run on and subsequent deployments
+
 The cleanup script supports two modes:
 
 Standard Cleanup: Removes containers/pods but preserves your Zabbix configuration and database.
@@ -85,9 +83,13 @@ Bash
 ```
 
 ./cleanup-zabbix.bash
-Factory Reset: Removes containers and deletes all data (database, hosts, and logs). Use this to start from a completely blank Zabbix install.
 
 ```
+
+
+Factory Reset: Removes containers and deletes all data (database, hosts, and logs). Use this to start from a completely blank Zabbix install.
+
+
 Bash
 
 ```

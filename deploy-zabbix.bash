@@ -1,5 +1,6 @@
 #!/bin/bash
 # DESCRIPTION: Deploys Zabbix 7.2 using variables from vars.env
+# Includes automated Firewall and Permission configuration.
 
 # Load variables
 if [ -f "vars.env" ]; then
@@ -11,19 +12,30 @@ fi
 
 echo "[*] Starting Zabbix v7.2 Deployment for Pod: $POD_NAME"
 
-# 1. PREP: Directories & Permissions
+# --- 1. FIREWALL CONFIGURATION ---
+if systemctl is-active --quiet firewalld; then
+    echo "[*] Firewall detected. Opening ports 162/udp (SNMP) and 80/tcp (Web)..."
+    sudo firewall-cmd --add-port=162/udp --permanent >/dev/null 2>&1
+    sudo firewall-cmd --add-port=80/tcp --permanent >/dev/null 2>&1
+    sudo firewall-cmd --reload >/dev/null 2>&1
+    echo "[OK] Firewall updated."
+else
+    echo "[!] firewalld is not running. Ensure your network path is open."
+fi
+
+# --- 2. PREP: Directories & Permissions ---
 mkdir -p $INSTALL_DIR/{postgres,snmptraps,mibs,export,enc,extra_cfg}
 chown -R 1001:1001 $INSTALL_DIR/snmptraps
 chmod -R 777 $INSTALL_DIR/snmptraps
 [ -x "$(command -v chcon)" ] && chcon -R -t container_file_t $INSTALL_DIR/snmptraps
 
-# 2. PREP: SNMP Config
+# --- 3. PREP: SNMP Config ---
 cat <<EOF > $INSTALL_DIR/extra_cfg/zabbix_server_snmp_traps.conf
 StartSNMPTrapper=1
 SNMPTrapperFile=/var/lib/zabbix/snmptraps/snmptraps.log
 EOF
 
-# 3. POD & CONTAINERS
+# --- 4. POD & CONTAINERS ---
 podman pod rm -f $POD_NAME 2>/dev/null
 podman pod create --name $POD_NAME --restart always -p 80:8080 -p 443:8443 -p 10051:10051 -p 162:1162/udp
 
