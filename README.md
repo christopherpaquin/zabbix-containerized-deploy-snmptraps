@@ -75,13 +75,22 @@ POD_NAME="zabbix-pod"
 
 ### Step 1: Cleanup
 
-Ensure no stale containers or volume locks exist from previous runs.
+Ensure no stale containers exist from previous runs.
 
 Bash
 
 ```
-# Do not need to run on first deploy, but would run on subsequent deploys
+
 ./cleanup-zabbix.bash
+
+```
+
+Or run the deep-clean and delete data on /var/lib/zabbix/postgres/ and /var/lib/zabbix/snmptraps/*
+
+Bash
+
+```
+./deep-clean.bash
 
 ```
 
