@@ -11,6 +11,7 @@ This code has been tested only on RHEL 10.1
 
 The architecture is specifically designed to handle **SNMP Traps** through a shared-volume "trapper" pattern. This ensures that trap data is received by a lightweight listener and processed by the core Zabbix engine without the need for complex internal networking.
 
+
 ### The Stack:
 * **Database:** PostgreSQL 16 (Alpine)
 * **Trap Receiver:** Zabbix-SNMP-Traps 7.2
@@ -19,14 +20,14 @@ The architecture is specifically designed to handle **SNMP Traps** through a sha
 
 
 
-## Prerequisites
+### Prerequisites
 * **Podman** installed and running.
 * **net-snmp-utils** installed on the host (for testing).
 
 
-* * * * *
 
-## Configuration (`vars.env`)
+
+### Configuration (`vars.env`)
 
 
 
@@ -36,11 +37,11 @@ CRITICAL: Ensure your .gitignore includes vars.env to prevent committing secrets
 
 ### Setup Instructions
 
-1.  Create the file: `vim vars.env`
+1.  Create the file: `vim vars.env` - a template file has been provided
 
 2.  Populate it with your local environment details:
 
-Bash
+
 
 ```
 # --- DATABASE CONFIG ---
@@ -63,7 +64,8 @@ POD_NAME="zabbix-pod"
 
 ```
 
-* * * * *
+
+
 
 ## Deployment Workflow
 
@@ -78,7 +80,7 @@ The cleanup script supports two modes:
 
 Standard Cleanup: Removes containers/pods but preserves your Zabbix configuration and database.
 
-Bash
+
 
 ```
 
@@ -87,10 +89,11 @@ Bash
 ```
 
 
+
 Factory Reset: Removes containers and deletes all data (database, hosts, and logs). Use this to start from a completely blank Zabbix install.
 
 
-Bash
+
 
 ```
 ./cleanup-zabbix.bash --factory-reset
@@ -105,24 +108,26 @@ Bash
 
 This script handles directory creation, security labeling (SELinux), and container orchestration.
 
-Bash
+
+
 
 ```
 ./deploy-zabbix.bash
 
 ```
 
+
 ### Step 3: Health Check
 Verify that all containers are running and verify that the internal "SNMP Trapper" process is active within the server container.
 
-Bash
+
 
 ```
 ./check-zabbix-health.bash
 
 ```
 
-* * * * *
+
 
 ## Zabbix Web UI Configuration
 
@@ -137,7 +142,9 @@ Bash
 
 5.  **Config Cache:** Force Zabbix to recognize changes immediately:
 
-Bash
+
+
+
 
 ```
 # Update Now" button for the Zabbix Server's internal brain
@@ -145,7 +152,7 @@ podman exec zabbix-server-pgsql zabbix_server -R config_cache_reload
 
 ```
 
-* * * * *
+
 
 ## Troubleshooting & Verification
 
@@ -163,18 +170,22 @@ If traps do not appear in **Monitoring > Latest Data**, follow this flow:
 
 Note: If "unmatched" appears, the Source IP of the trap does not match the IP configured in the Web UI.
 
+
+
 ### Manual Injection Test
 
 Use the included test script to verify the pipeline from the local host:
 
-Bash
+
+
 
 ```
 ./test-network-trap.bash "MY_VALIDATION_MESSAGE"
 
 ```
 
-* * * * *
+
+
 
 ## Security and Permissions
 
@@ -187,7 +198,8 @@ This deployment uses the following security measures:
 
 -   **Global Write:** The `snmptraps/` directory uses `777` permissions to ensure the receiver can write while the server reads.
 
-Bash
+
+
 
 ```
 # Manual permission reset if needed:
@@ -195,3 +207,6 @@ chown -R 1001:1001 /var/lib/zabbix/snmptraps
 chmod -R 777 /var/lib/zabbix/snmptraps
 chcon -R -t container_file_t /var/lib/zabbix/snmptraps
 ```
+
+
+
