@@ -199,6 +199,35 @@ Use the included test script to verify the pipeline from the local host:
 
 ```
 
+Simulating a Cisco Link Down Event:
+
+
+```
+./test-network-trap.bash "Interface GigabitEthernet0/1, changed state to down"
+
+```
+
+Simulating a Cisco Link Up Event:
+
+```
+./test-network-trap.bash "Interface GigabitEthernet0/1, changed state to up"
+```
+
+Simulating a Configuration Change:
+
+```
+./test-network-trap.bash "Configured from console by vty0 (10.1.10.50)"
+```
+
+
+
+####How to verify the results in Zabbix:
+
+- Check the Shared Log: Run tail -f /var/lib/zabbix/snmptraps/snmptraps.log. You will see the trap enter the file instantly.
+
+- Check the Web UI: Go to Monitoring > Latest Data, filter by your host, and look at the SNMP traps (fallback) item.
+
+
 
 
 
