@@ -193,11 +193,7 @@ Note: If "unmatched" appears, the Source IP of the trap does not match the IP co
 
 ### Manual Injection Test
 
-Use the included test script to verify the pipeline from the local host:
-
-For testing, the var *TEST_SENDER_IP="10.x.x.x"* should match the IP added in the Zabbix Config.
-
-
+Use the included test script to verify the pipeline from the local host. You will want to move this script to the host that you are using to send the alert. The IP of that host should match the *TEST_SENDER_IP="10.x.x.x"*
 
 
 
@@ -232,6 +228,45 @@ For testing, the var *TEST_SENDER_IP="10.x.x.x"* should match the IP added in th
 ./test-network-trap.bash "Configured from console by vty0 (10.1.10.50)"
 ```
 
+#### Sending a test alert manually from a remote host
+
+If you do not want to copy the *./test-network-trap.bash* script to the remote test host then you can run tests manually using the format below
+
+
+```
+
+snmptrap -v 2c -c <YOUR_SNMP_COMMUNITY> <IP_OF_ZABBIX_HOST>:162 "" 1.3.6.1.4.1.9.9.41.1.2.3.1.2.1 1.3.6.1.4.1.9.9.41.1.2.3.1.2.1 s "Interface GigabitEthernet0/1, changed state to down"
+
+'''
+
+##### Example
+
+```
+
+snmptrap -v 2c -c public 10.1.10.50:162 "" 1.3.6.1.4.1.9.9.41.1.2.3.1.2.1 1.3.6.1.4.1.9.9.41.1.2.3.1.2.1 s "Interface GigabitEthernet0/1, changed state to down"
+
+```
+
+##### Remote Test Rationale
+
+In the log output below you can see that when run from on the zabbix host, the snmptrap is associated with the IP address 10.88.0.1, which is a *podman* ip. 
+
+Additionally, testing from an external host validates firewall configs
+
+You can set the IP on the Zabbix monitored device's interface to the podman IP if you want to test sending alerts locally. 
+
+Bottom line, the IP of the host sending the alert, must match the IP of the monitored interface in Zabbix otherwise there is not a match between alert source and monitored device
+
+```
+
+#  tail -f /var/lib/zabbix/snmptraps/snmptraps.log
+2025-12-28T17:52:33+0000 ZBXTRAP 10.88.0.1
+UDP: [10.88.0.1]:43161->[10.88.0.19]:1162
+DISMAN-EVENT-MIB::sysUpTimeInstance = 14085669
+SNMPv2-MIB::snmpTrapOID.0 = SNMPv2-SMI::enterprises.9.9.41.1.2.3.1.2.1
+SNMPv2-SMI::enterprises.9.9.41.1.2.3.1.2.1 = "Interface GigabitEthernet0/1, changed state to down"
+
+```
 
 
 #### How to verify the results in Zabbix:
