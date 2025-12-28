@@ -81,18 +81,10 @@ Bash
 
 ```
 
-./cleanup-zabbix.bash
+./cleanup-zabbix.bash --factory-reset
 
 ```
 
-Or run the deep-clean and delete data on /var/lib/zabbix/postgres/ and /var/lib/zabbix/snmptraps/*
-
-Bash
-
-```
-./deep-clean.bash
-
-```
 
 ### Step 2: Deploy
 
