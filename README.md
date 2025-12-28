@@ -1,7 +1,6 @@
-```
-# Zabbix 7.2 Containerized SNMP Trap Laboratory
+1\. Zabbix 7.2 Containerized SNMP Trap Laboratory
 
-## 1. Overview
+Overview
 This repository contains a professional-grade, containerized Zabbix 7.2 monitoring stack deployed via **Podman**.
 
 The architecture is specifically designed to handle **SNMP Traps** through a shared-volume "trapper" pattern. This ensures that trap data is received by a lightweight listener and processed by the core Zabbix engine without the need for complex internal networking.
