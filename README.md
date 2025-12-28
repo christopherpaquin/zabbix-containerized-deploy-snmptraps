@@ -75,15 +75,28 @@ POD_NAME="zabbix-pod"
 
 ### Step 1: Cleanup
 
-Ensure no stale containers exist from previous runs.
+Step 1: Cleanup & Reset Options
+The cleanup script supports two modes:
+
+Standard Cleanup: Removes containers/pods but preserves your Zabbix configuration and database.
 
 Bash
 
 ```
 
+./cleanup-zabbix.bash
+Factory Reset: Removes containers and deletes all data (database, hosts, and logs). Use this to start from a completely blank Zabbix install.
+
+```
+Bash
+
+```
 ./cleanup-zabbix.bash --factory-reset
 
 ```
+
+
+
 
 
 ### Step 2: Deploy
