@@ -301,10 +301,15 @@ chcon -R -t container_file_t /var/lib/zabbix/snmptraps
 ```
 
 
-Zabbix MIB Management Documentation
+MIBs Management
 ===================================
 
-This document describes the architecture, configuration, and usage of the MIB Management system developed for the Zabbix Podman deployment. This system ensures that SNMP traps from various vendors (Cisco, Juniper, Dell, APC) are translated from numeric OIDs into human-readable text.
+This section of the  document describes the architecture, configuration, and usage of the MIB Management system developed for the Zabbix Podman deployment. This system ensures that SNMP traps from various vendors (Cisco, Juniper, Dell, APC) are translated from numeric OIDs into human-readable text.
+
+Here we will utilize two files to load mibs
+
+-   mibs.conf
+-   manage-mibs.bash
 
 * * * * *
 
