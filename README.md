@@ -237,9 +237,9 @@ If you do not want to copy the *./test-network-trap.bash* script to the remote t
 
 snmptrap -v 2c -c <YOUR_SNMP_COMMUNITY> <IP_OF_ZABBIX_HOST>:162 "" 1.3.6.1.4.1.9.9.41.1.2.3.1.2.1 1.3.6.1.4.1.9.9.41.1.2.3.1.2.1 s "Interface GigabitEthernet0/1, changed state to down"
 
-'''
+```
 
-##### Example
+#### Example
 
 ```
 
