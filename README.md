@@ -73,7 +73,7 @@ POD_NAME="zabbix-pod"
 
 ### Step 1: Cleanup
 
-Step 1: Cleanup & Reset Options
+Cleanup & Reset Options
 This step can be skipped for the initial deployment, but should be run on and subsequent deployments
 
 The cleanup script supports two modes:
