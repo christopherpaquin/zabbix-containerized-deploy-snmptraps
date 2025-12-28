@@ -11,9 +11,9 @@ The architecture is specifically designed to handle **SNMP Traps** through a sha
 * **Core Engine:** Zabbix-Server-PgSQL 7.2
 * **Web Interface:** Zabbix-Web-Nginx-PgSQL 7.2
 
----
 
-## 2. Prerequisites
+
+2\.  Prerequisites
 * **Podman** installed and running.
 * **net-snmp-utils** installed on the host (for testing).
 * **Firewall Permissions:** Port `162/UDP` must be open to allow external traps.
