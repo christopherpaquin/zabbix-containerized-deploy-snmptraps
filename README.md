@@ -1,6 +1,12 @@
 # Zabbix 7.2 Containerized SNMP Trap Laboratory
+-------------------------------
 
-Overview
+
+
+
+## Overview
+-------------------------------
+
 This repository contains a professional-grade, containerized Zabbix 7.2 monitoring stack deployed via **Podman**.
 
 The architecture is specifically designed to handle **SNMP Traps** through a shared-volume "trapper" pattern. This ensures that trap data is received by a lightweight listener and processed by the core Zabbix engine without the need for complex internal networking.
@@ -13,7 +19,7 @@ The architecture is specifically designed to handle **SNMP Traps** through a sha
 
 
 
-2\.  Prerequisites
+## Prerequisites
 * **Podman** installed and running.
 * **net-snmp-utils** installed on the host (for testing).
 * **Firewall Permissions:** Port `162/UDP` must be open to allow external traps.
@@ -26,8 +32,9 @@ sudo firewall-cmd --reload
 
 * * * * *
 
-3\. Configuration (`vars.env`)
-------------------------------
+## Configuration (`vars.env`)
+-------------------------------
+
 
 To protect sensitive credentials and local network settings, all configuration is stored in `vars.env`. This file is ignored by Git.
 
@@ -62,8 +69,9 @@ POD_NAME="zabbix-pod"
 
 * * * * *
 
-4\. Deployment Workflow
------------------------
+## Deployment Workflow
+-------------------------------
+
 
 ### Step 1: Cleanup
 
@@ -101,7 +109,7 @@ Bash
 
 * * * * *
 
-5\. Zabbix Web UI Configuration
+## Zabbix Web UI Configuration
 -------------------------------
 
 1.  **Login:** Access `http://<ZABBIX_SERVER_IP>` (Default: `Admin`/`zabbix`).
@@ -123,7 +131,7 @@ podman exec zabbix-server-pgsql zabbix_server -R config_cache_reload
 
 * * * * *
 
-6\. Troubleshooting & Verification
+## Troubleshooting & Verification
 ----------------------------------
 
 ### The Troubleshooting Chain
@@ -150,7 +158,7 @@ Bash
 
 * * * * *
 
-7\. Security and Permissions
+## Security and Permissions
 ----------------------------
 
 This deployment uses the following security measures:
