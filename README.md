@@ -1,5 +1,4 @@
 # Zabbix 7.2 Containerized SNMP Trap Laboratory
--------------------------------
 
 
 
@@ -7,7 +6,7 @@
 ## Overview
 -------------------------------
 
-This repository contains a professional-grade, containerized Zabbix 7.2 monitoring stack deployed via **Podman**.
+This repository contains a code to deploy a containerized Zabbix 7.2 monitoring stack deployed via **Podman**. 
 
 The architecture is specifically designed to handle **SNMP Traps** through a shared-volume "trapper" pattern. This ensures that trap data is received by a lightweight listener and processed by the core Zabbix engine without the need for complex internal networking.
 
@@ -80,7 +79,7 @@ Ensure no stale containers or volume locks exist from previous runs.
 Bash
 
 ```
-chmod +x *.bash
+# Do not need to run on first deploy, but would run on subsequent deploys
 ./cleanup-zabbix.bash
 
 ```
@@ -97,8 +96,7 @@ Bash
 ```
 
 ### Step 3: Health Check
-
-Verify that the internal "SNMP Trapper" process is active within the server container.
+Verify that all containers are running and verify that the internal "SNMP Trapper" process is active within the server container.
 
 Bash
 
@@ -116,7 +114,7 @@ Bash
 
 2.  **Create Host:** Go to **Data Collection > Hosts**.
 
-3.  **SNMP Interface:** Add an interface using the `TEST_SENDER_IP` from your `vars.env`.
+3.  **SNMP Interface:** Add a Host with an SNMP interface using the `TEST_SENDER_IP` from your `vars.env`.
 
 4.  **Macros:** Add the macro `{$SNMP_COMMUNITY}` and set it to your community string.
 
@@ -125,6 +123,7 @@ Bash
 Bash
 
 ```
+# Update Now" button for the Zabbix Server's internal brain
 podman exec zabbix-server-pgsql zabbix_server -R config_cache_reload
 
 ```
