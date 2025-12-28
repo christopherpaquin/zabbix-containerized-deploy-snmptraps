@@ -4,7 +4,6 @@
 
 
 ## Overview
--------------------------------
 
 This repository contains a code to deploy a containerized Zabbix 7.2 monitoring stack deployed via **Podman**. 
 
@@ -32,7 +31,7 @@ sudo firewall-cmd --reload
 * * * * *
 
 ## Configuration (`vars.env`)
--------------------------------
+
 
 
 To protect sensitive credentials and local network settings, all configuration is stored in `vars.env`. This file is ignored by Git.
@@ -69,7 +68,7 @@ POD_NAME="zabbix-pod"
 * * * * *
 
 ## Deployment Workflow
--------------------------------
+
 
 
 ### Step 1: Cleanup
@@ -108,7 +107,7 @@ Bash
 * * * * *
 
 ## Zabbix Web UI Configuration
--------------------------------
+
 
 1.  **Login:** Access `http://<ZABBIX_SERVER_IP>` (Default: `Admin`/`zabbix`).
 
@@ -131,7 +130,7 @@ podman exec zabbix-server-pgsql zabbix_server -R config_cache_reload
 * * * * *
 
 ## Troubleshooting & Verification
-----------------------------------
+
 
 ### The Troubleshooting Chain
 
@@ -158,7 +157,7 @@ Bash
 * * * * *
 
 ## Security and Permissions
-----------------------------
+
 
 This deployment uses the following security measures:
 
