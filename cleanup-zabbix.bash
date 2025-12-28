@@ -23,13 +23,19 @@ fi
 
 # --- DATA CLEANUP ---
 if [[ "$1" == "--factory-reset" ]]; then
-    echo "[!] WARNING: Performing Factory Reset (Deleting all Database and Trap data)..."
-    sudo rm -rf $INSTALL_DIR/postgres/*
-    sudo rm -rf $INSTALL_DIR/snmptraps/*
+    echo "[!] WARNING: Performing Factory Reset..."
+    # Deleting the directory contents including hidden files
+    sudo find $INSTALL_DIR/postgres -mindepth 1 -delete
+    sudo find $INSTALL_DIR/snmptraps -mindepth 1 -delete
+    # Optional: Clear MIBs if you want a true 100% reset
+    # sudo find $INSTALL_DIR/mibs -mindepth 1 -delete 
     echo "[OK] All persistent data has been deleted."
 else
     echo "[*] Persistence Kept. (Use --factory-reset to wipe data next time)."
-    sudo truncate -s 0 $INSTALL_DIR/snmptraps/snmptraps.log 2>/dev/null
+    # Clean the trap log so it doesn't grow indefinitely between restarts
+    if [ -f "$INSTALL_DIR/snmptraps/snmptraps.log" ]; then
+        sudo truncate -s 0 "$INSTALL_DIR/snmptraps/snmptraps.log"
+    fi
 fi
 
 echo "[OK] Cleanup complete."
