@@ -111,6 +111,7 @@ Factory Reset: Removes containers and deletes all data (database, hosts, and log
 
 
 ```
+
 ./cleanup-zabbix.bash --factory-reset
 
 ```
@@ -127,6 +128,7 @@ This script handles directory creation, security labeling (SELinux), and contain
 
 
 ```
+
 ./deploy-zabbix.bash
 
 ```
@@ -138,6 +140,7 @@ Verify that all containers are running and verify that the internal "SNMP Trappe
 
 
 ```
+
 ./check-zabbix-health.bash
 
 ```
@@ -162,7 +165,8 @@ Verify that all containers are running and verify that the internal "SNMP Trappe
 
 
 ```
-# Update Now" button for the Zabbix Server's internal brain
+
+# Update Now" button for the Zabbix Server's internal brain - forces Zabbix to recognize changes immediately instead of waiting 60 seconds
 podman exec zabbix-server-pgsql zabbix_server -R config_cache_reload
 
 ```
@@ -195,33 +199,39 @@ Use the included test script to verify the pipeline from the local host:
 
 
 ```
+
 ./test-network-trap.bash "MY_VALIDATION_MESSAGE"
 
 ```
 
-Simulating a Cisco Link Down Event:
+#### Simulating a Cisco Link Down Event:
 
 
 ```
+
 ./test-network-trap.bash "Interface GigabitEthernet0/1, changed state to down"
 
 ```
 
-Simulating a Cisco Link Up Event:
+#### Simulating a Cisco Link Up Event:
+
 
 ```
+
 ./test-network-trap.bash "Interface GigabitEthernet0/1, changed state to up"
 ```
 
-Simulating a Configuration Change:
+#### Simulating a Configuration Change:
+
 
 ```
+
 ./test-network-trap.bash "Configured from console by vty0 (10.1.10.50)"
 ```
 
 
 
-####How to verify the results in Zabbix:
+#### How to verify the results in Zabbix:
 
 - Check the Shared Log: Run tail -f /var/lib/zabbix/snmptraps/snmptraps.log. You will see the trap enter the file instantly.
 
