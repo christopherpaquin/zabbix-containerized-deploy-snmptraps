@@ -1,18 +1,26 @@
 #!/bin/bash
-# DESCRIPTION: Stops and removes Zabbix containers/pods and clears trap logs.
+# DESCRIPTION: Stops Zabbix and optionally WIPES all data for a factory reset.
 
-POD_NAME="zabbix-pod"
-INSTALL_DIR="/var/lib/zabbix"
+if [ -f "vars.env" ]; then
+    source vars.env
+else
+    INSTALL_DIR="/var/lib/zabbix"
+    POD_NAME="zabbix-pod"
+fi
 
-echo "[*] Tearing down Zabbix environment..."
-
-# Remove containers and pod
+echo "[*] Tearing down Zabbix containers and pod..."
 podman pod rm -f $POD_NAME 2>/dev/null
 
-# Clear the shared trap log to prevent stale data on redeploy
-if [ -f "$INSTALL_DIR/snmptraps/snmptraps.log" ]; then
-    echo "[*] Clearing old trap logs..."
-    cat /dev/null > "$INSTALL_DIR/snmptraps/snmptraps.log"
+# Check for "wipe" argument
+if [[ "$1" == "--factory-reset" ]]; then
+    echo "[!] WARNING: Performing Factory Reset (Deleting all Database and Trap data)..."
+    sudo rm -rf $INSTALL_DIR/postgres/*
+    sudo rm -rf $INSTALL_DIR/snmptraps/*
+    echo "[OK] All persistent data has been deleted."
+else
+    echo "[*] Persistence Kept. (Use --factory-reset to wipe the database next time)."
+    # Just clear the log file so it's fresh for the next run
+    sudo truncate -s 0 $INSTALL_DIR/snmptraps/snmptraps.log 2>/dev/null
 fi
 
 echo "[OK] Cleanup complete."
