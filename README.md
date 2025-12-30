@@ -2,9 +2,7 @@
 
 > **Containerized Zabbix 7.2 monitoring stack with SNMP trap support, deployed via Podman**
 
-[![Tested on](https://img.shields.io/badge/Tested%20on-RHEL%2010.1-red)](https://www.redhat.com)
-[![Zabbix](https://img.shields.io/badge/Zabbix-7.2-blue)](https://www.zabbix.com)
-[![Podman](https://img.shields.io/badge/Podman-Container-orange)](https://podman.io)
+![Tested on RHEL 10.1](https://img.shields.io/badge/Tested%20on-RHEL%2010.1-red?style=flat-square) ![Zabbix 7.2](https://img.shields.io/badge/Zabbix-7.2-blue?style=flat-square) ![Podman](https://img.shields.io/badge/Podman-Container-orange?style=flat-square)
 
 ---
 
