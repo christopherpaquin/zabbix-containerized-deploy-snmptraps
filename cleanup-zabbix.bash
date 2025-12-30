@@ -10,7 +10,7 @@ else
 fi
 
 echo "[*] Tearing down Zabbix containers and pod..."
-podman pod rm -f $POD_NAME 2>/dev/null
+podman pod rm -f "${POD_NAME}" 2>/dev/null
 
 # --- FIREWALL CLEANUP ---
 if systemctl is-active --quiet firewalld; then
@@ -25,8 +25,8 @@ fi
 if [[ "$1" == "--factory-reset" ]]; then
     echo "[!] WARNING: Performing Factory Reset..."
     # Deleting the directory contents including hidden files
-    sudo find $INSTALL_DIR/postgres -mindepth 1 -delete
-    sudo find $INSTALL_DIR/snmptraps -mindepth 1 -delete
+    sudo find "${INSTALL_DIR}/postgres" -mindepth 1 -delete
+    sudo find "${INSTALL_DIR}/snmptraps" -mindepth 1 -delete
     # Optional: Clear MIBs if you want a true 100% reset
     # sudo find $INSTALL_DIR/mibs -mindepth 1 -delete 
     echo "[OK] All persistent data has been deleted."

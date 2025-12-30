@@ -18,7 +18,7 @@ CONTAINERS=(
     "zabbix-web-nginx-pgsql"
 )
 
-echo "Checking Zabbix Stack Health for Pod: $POD_NAME"
+echo "Checking Zabbix Stack Health for Pod: ${POD_NAME}"
 echo "------------------------------------------------------------"
 printf "%-25s | %-15s | %-10s\n" "COMPONENT" "STATUS" "HEALTH"
 echo "------------------------------------------------------------"

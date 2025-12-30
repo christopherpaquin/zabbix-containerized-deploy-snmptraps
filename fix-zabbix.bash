@@ -10,7 +10,7 @@ else
 fi
 
 POD_NAME=${POD_NAME:-zabbix-pod}
-echo "[*] Force-Cleaning and Restoring Pod: $POD_NAME"
+echo "[*] Force-Cleaning and Restoring Pod: ${POD_NAME}"
 
 # 1. Force remove stuck containers
 CONTAINERS=("zabbix-web-nginx-pgsql" "zabbix-agent" "zabbix-server-pgsql" "zabbix-snmptraps" "postgres-server")
@@ -20,12 +20,12 @@ for container in "${CONTAINERS[@]}"; do
 done
 
 # 2. Ensure the Pod exists
-if ! podman pod exists "$POD_NAME"; then
-    echo "[*] Pod $POD_NAME is missing. Recreating..."
-    podman pod create --name "$POD_NAME" --restart always \
+if ! podman pod exists "${POD_NAME}"; then
+    echo "[*] Pod ${POD_NAME} is missing. Recreating..."
+    podman pod create --name "${POD_NAME}" --restart always \
         -p 80:8080 -p 443:8443 -p 10051:10051 -p 162:1162/udp
 else
-    echo "[OK] Pod $POD_NAME exists."
+    echo "[OK] Pod ${POD_NAME} exists."
 fi
 
 # 3. Clean up stale sockets on the host
@@ -69,5 +69,5 @@ podman run -d --name zabbix-web-nginx-pgsql --pod "$POD_NAME" --restart always \
     zabbix/zabbix-web-nginx-pgsql:alpine-7.2-latest
 
 echo "------------------------------------------------------------"
-podman ps -a --pod --filter "pod=$POD_NAME"
+podman ps -a --pod --filter "pod=${POD_NAME}"
 echo "------------------------------------------------------------"
