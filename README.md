@@ -163,7 +163,114 @@ zabbix-web-nginx-pgsql     | running         | [OK]
 
 ## 🔍 Troubleshooting & Verification
 
-### Troubleshooting Chain
+### Automated Troubleshooting Tool
+
+The `troubleshoot-zabbix.bash` script provides comprehensive diagnostic capabilities for your Zabbix deployment. It automatically checks all components and provides actionable recommendations.
+
+#### Quick Start
+
+**Run all diagnostic checks:**
+```bash
+./troubleshoot-zabbix.bash --all
+```
+
+**Interactive menu mode:**
+```bash
+./troubleshoot-zabbix.bash
+```
+
+**Run specific diagnostic checks:**
+```bash
+./troubleshoot-zabbix.bash --snmptraps    # SNMP traps troubleshooting
+./troubleshoot-zabbix.bash --containers  # Container status check
+./troubleshoot-zabbix.bash --database     # Database connectivity
+./troubleshoot-zabbix.bash --web         # Web interface check
+./troubleshoot-zabbix.bash --systemd     # Systemd service status
+./troubleshoot-zabbix.bash --volumes     # Volume mounts and permissions
+./troubleshoot-zabbix.bash --network     # Network connectivity
+./troubleshoot-zabbix.bash --logs        # Log analysis
+./troubleshoot-zabbix.bash --config      # Configuration validation
+./troubleshoot-zabbix.bash --resources   # Resource usage
+```
+
+#### What It Checks
+
+The troubleshooting script performs comprehensive checks across 10 diagnostic categories:
+
+1. **Container Status Check**
+   - Pod existence and status
+   - Individual container status, health, and restart counts
+   - Recent container logs
+
+2. **SNMP Traps Troubleshooting**
+   - Container listening status on UDP port 1162
+   - Host port mapping (162/udp)
+   - Traps log file existence and content
+   - SNMP community string validation
+   - Volume mount verification
+   - Firewall rules
+   - **Automatic test trap sending and verification**
+
+3. **Database Connectivity Check**
+   - PostgreSQL container status
+   - Database readiness and existence
+   - Connection error detection
+   - Volume mount verification
+
+4. **Web Interface Check**
+   - Container status
+   - Port mapping (80/tcp)
+   - HTTP connectivity test
+   - Firewall rules
+
+5. **Systemd Service Check**
+   - Service file existence
+   - Service enabled/active status
+   - Boot persistence verification
+
+6. **Volume Mounts and Permissions**
+   - Directory structure validation
+   - File permissions
+   - SELinux context verification
+   - Configuration file validation
+
+7. **Network Connectivity**
+   - Pod network information
+   - Port mappings
+   - Container-to-container communication
+
+8. **Log Analysis**
+   - Error and warning detection across all containers
+   - Recent log review
+
+9. **Configuration Validation**
+   - vars.env file validation
+   - Required variables check
+   - Container environment variables
+
+10. **Resource Usage**
+    - Container CPU and memory usage
+    - Disk usage analysis
+
+#### Example Output
+
+The script provides color-coded output for easy identification:
+- 🟢 **Green [OK]**: Component is healthy
+- 🔴 **Red [ERROR]**: Critical issue detected
+- 🟡 **Yellow [WARN]**: Warning or potential issue
+- 🔵 **Cyan [INFO]**: Informational message
+
+#### Common Issues and Solutions
+
+The script automatically detects and provides solutions for common issues:
+
+- **Containers not starting after reboot**: Checks systemd service configuration
+- **SNMP traps not being received**: Validates port mappings, firewall, and container status
+- **Database connection errors**: Verifies PostgreSQL status and connectivity
+- **Web interface inaccessible**: Checks container status, port mappings, and firewall
+- **Permission issues**: Validates SELinux contexts and file permissions
+
+### Manual Troubleshooting Chain
 
 If traps do not appear in **Monitoring > Latest Data**, follow this diagnostic flow:
 
@@ -370,6 +477,7 @@ The system maintains a flat directory structure for optimal indexing:
 |--------|---------|
 | `deploy-zabbix.bash` | Main deployment script |
 | `check-zabbix-health.bash` | Health check for all containers |
+| `troubleshoot-zabbix.bash` | Comprehensive diagnostic and troubleshooting tool |
 | `cleanup-zabbix.bash` | Cleanup and factory reset |
 | `fix-zabbix.bash` | Force-clean and redeploy stuck containers |
 | `manage-mibs.bash` | MIB library management |
