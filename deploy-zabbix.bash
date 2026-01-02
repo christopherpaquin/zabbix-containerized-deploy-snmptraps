@@ -79,6 +79,87 @@ podman run -d --name zabbix-web-nginx-pgsql --pod "${POD_NAME}" --restart always
     --health-interval=10s --health-start-period=30s \
     zabbix/zabbix-web-nginx-pgsql:alpine-7.2-latest
 
-# Enable the Host's Podman Restart service
-sudo systemctl enable --now podman-restart
-echo "[OK] Deployment Complete."
+# --- 5. SYSTEMD SERVICE FOR BOOT PERSISTENCE ---
+echo "[*] Generating systemd service file for pod..."
+SERVICE_NAME="pod-${POD_NAME}.service"
+SERVICE_FILE="/etc/systemd/system/${SERVICE_NAME}"
+
+# Generate systemd service file for the pod (without --new to use existing containers)
+# The --files flag creates the file in current directory
+TEMP_DIR=$(mktemp -d)
+cd "$TEMP_DIR" || exit 1
+
+if podman generate systemd --name "${POD_NAME}" --files 2>/dev/null; then
+    # Move the generated service file to systemd directory
+    if [ -f "${TEMP_DIR}/${SERVICE_NAME}" ]; then
+        sudo mv "${TEMP_DIR}/${SERVICE_NAME}" "${SERVICE_FILE}"
+        cd - > /dev/null || exit 1
+        rm -rf "$TEMP_DIR"
+        echo "[OK] Generated systemd service file from podman"
+    else
+        cd - > /dev/null || exit 1
+        rm -rf "$TEMP_DIR"
+        echo "[WARNING] Service file not found after generation, creating manually..."
+        # Fallback: create service file manually
+        sudo tee "${SERVICE_FILE}" > /dev/null <<EOF
+[Unit]
+Description=Podman pod ${POD_NAME}
+Documentation=man:podman-generate-systemd(1)
+Wants=network-online.target
+After=network-online.target
+RequiresMountsFor=%t/containers
+
+[Service]
+Environment=PODMAN_SYSTEMD_UNIT=%n
+Restart=on-failure
+TimeoutStopSec=70
+ExecStart=/usr/bin/podman start ${POD_NAME}
+ExecStop=/usr/bin/podman stop -t 10 ${POD_NAME}
+ExecStopPost=/usr/bin/podman stop -t 10 ${POD_NAME}
+Type=forking
+PIDFile=%t/%n-pid
+FileDescriptorStoreMax=0
+
+[Install]
+WantedBy=default.target
+EOF
+    fi
+else
+    echo "[WARNING] Service file generation failed, creating manually..."
+    cd - > /dev/null || exit 1
+    rm -rf "$TEMP_DIR"
+    # Fallback: create service file manually
+    sudo tee "${SERVICE_FILE}" > /dev/null <<EOF
+[Unit]
+Description=Podman pod ${POD_NAME}
+Documentation=man:podman-generate-systemd(1)
+Wants=network-online.target
+After=network-online.target
+RequiresMountsFor=%t/containers
+
+[Service]
+Environment=PODMAN_SYSTEMD_UNIT=%n
+Restart=on-failure
+TimeoutStopSec=70
+ExecStart=/usr/bin/podman start ${POD_NAME}
+ExecStop=/usr/bin/podman stop -t 10 ${POD_NAME}
+ExecStopPost=/usr/bin/podman stop -t 10 ${POD_NAME}
+Type=forking
+PIDFile=%t/%n-pid
+FileDescriptorStoreMax=0
+
+[Install]
+WantedBy=default.target
+EOF
+fi
+
+# Reload systemd and enable the service
+sudo systemctl daemon-reload
+sudo systemctl enable "${SERVICE_NAME}"
+# Start the service to ensure it's running (it should already be running, but this ensures systemd knows about it)
+sudo systemctl start "${SERVICE_NAME}" 2>/dev/null || true
+
+# Also enable podman-restart service as a fallback
+sudo systemctl enable --now podman-restart 2>/dev/null || true
+
+echo "[OK] Deployment Complete. Pod will start automatically on boot."
