@@ -71,6 +71,45 @@ chmod +x check-agent-config.bash
 
 ---
 
+### 3. `fix-nut-monitoring.bash`
+
+**Purpose:** Diagnoses and fixes NUT/UPS monitoring issues on monitored hosts.
+
+**Run from:** The monitored host (e.g., columbia.lab)
+
+**Usage:**
+```bash
+# Copy script to remote host
+scp helpers/fix-nut-monitoring.bash root@<hostname>:/tmp/
+
+# SSH to remote host and run
+ssh root@<hostname>
+cd /tmp
+chmod +x fix-nut-monitoring.bash
+./fix-nut-monitoring.bash
+```
+
+**What it checks:**
+1. NUT installation status
+2. NUT services (nut-server, nut-monitor)
+3. NUT configuration files
+4. UPS device discovery
+5. Zabbix agent NUT plugin
+6. Plugin configuration files
+
+**What it fixes:**
+- Creates missing NUT plugin configuration
+- Identifies stopped services
+- Shows UPS device status
+- Provides step-by-step fix instructions
+
+**Output:**
+- Detailed diagnostic results
+- Automatic creation of plugin config
+- Specific commands to fix issues
+
+---
+
 ## Common Troubleshooting Workflow
 
 ### Issue: Host not reporting data to Zabbix
@@ -85,6 +124,13 @@ chmod +x check-agent-config.bash
 # Copy and run check script on remote host
 scp helpers/check-agent-config.bash root@<hostname>:/tmp/
 ssh root@<hostname> '/tmp/check-agent-config.bash'
+```
+
+**Step 2b:** If NUT/UPS monitoring specifically is not working
+```bash
+# Copy and run NUT diagnostic script on remote host
+scp helpers/fix-nut-monitoring.bash root@<hostname>:/tmp/
+ssh root@<hostname> '/tmp/fix-nut-monitoring.bash'
 ```
 
 **Step 3:** Fix based on findings
