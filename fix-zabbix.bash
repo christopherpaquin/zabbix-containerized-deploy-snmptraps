@@ -9,8 +9,10 @@ else
     exit 1
 fi
 
+# Set default version if not specified
+ZABBIX_VERSION=${ZABBIX_VERSION:-7.4.6}
 POD_NAME=${POD_NAME:-zabbix-pod}
-echo "[*] Force-Cleaning and Restoring Pod: ${POD_NAME}"
+echo "[*] Force-Cleaning and Restoring Pod: ${POD_NAME} (Zabbix v${ZABBIX_VERSION})"
 
 # 1. Force remove stuck containers
 CONTAINERS=("zabbix-web-nginx-pgsql" "zabbix-agent" "zabbix-server-pgsql" "zabbix-snmptraps" "postgres-server")
@@ -46,7 +48,7 @@ podman run -d --name zabbix-snmptraps --pod "$POD_NAME" --restart always \
     -e ZBX_SNMP_COMMUNITY="$SNMP_COMMUNITY" \
     -v "$INSTALL_DIR/snmptraps:/var/lib/zabbix/snmptraps:z,U" \
     -v "$INSTALL_DIR/mibs:/var/lib/zabbix/mibs:z,U" \
-    zabbix/zabbix-snmptraps:alpine-7.2-latest
+    zabbix/zabbix-snmptraps:alpine-${ZABBIX_VERSION}
 
 # Zabbix Server
 podman run -d --name zabbix-server-pgsql --pod "$POD_NAME" --restart always \
@@ -54,19 +56,19 @@ podman run -d --name zabbix-server-pgsql --pod "$POD_NAME" --restart always \
     -v "$INSTALL_DIR/snmptraps:/var/lib/zabbix/snmptraps:z,U" \
     -v "$INSTALL_DIR/mibs:/var/lib/zabbix/mibs:z,U" \
     -v "$INSTALL_DIR/extra_cfg/zabbix_server_snmp_traps.conf:/etc/zabbix/zabbix_server_snmp_traps.conf:Z" \
-    zabbix/zabbix-server-pgsql:alpine-7.2-latest
+    zabbix/zabbix-server-pgsql:alpine-${ZABBIX_VERSION}
 
 # Zabbix Agent
 podman run -d --name zabbix-agent --pod "$POD_NAME" --restart always \
     -e ZBX_SERVER_HOST=127.0.0.1 -e ZBX_HOSTNAME="Zabbix server" \
     -e ZBX_AGENT2_PLUGINS_SOCKET=/tmp/zabbix-agent2-reboot.sock \
-    zabbix/zabbix-agent2:alpine-7.2-latest
+    zabbix/zabbix-agent2:alpine-${ZABBIX_VERSION}
 
 # Web
 podman run -d --name zabbix-web-nginx-pgsql --pod "$POD_NAME" --restart always \
     -e ZBX_SERVER_HOST=127.0.0.1 -e DB_SERVER_HOST=127.0.0.1 -e POSTGRES_USER=zabbix \
     -e POSTGRES_PASSWORD="$DB_PASSWORD" -e POSTGRES_DB=zabbix \
-    zabbix/zabbix-web-nginx-pgsql:alpine-7.2-latest
+    zabbix/zabbix-web-nginx-pgsql:alpine-${ZABBIX_VERSION}
 
 # 5. Regenerate and enable systemd service for boot persistence
 echo "[*] Regenerating systemd service file for pod..."
@@ -78,12 +80,14 @@ TEMP_DIR=$(mktemp -d)
 cd "$TEMP_DIR" || exit 1
 
 if podman generate systemd --name "${POD_NAME}" --files 2>/dev/null; then
-    # Move the generated service file to systemd directory
+    # Move ALL generated service files to systemd directory
     if [ -f "${TEMP_DIR}/${SERVICE_NAME}" ]; then
-        sudo mv "${TEMP_DIR}/${SERVICE_NAME}" "${SERVICE_FILE}"
+        sudo mv "${TEMP_DIR}"/*.service /etc/systemd/system/
+        # Fix SELinux contexts
+        sudo restorecon -R /etc/systemd/system/*.service 2>/dev/null || true
         cd - > /dev/null || exit 1
         rm -rf "$TEMP_DIR"
-        echo "[OK] Generated systemd service file from podman"
+        echo "[OK] Generated systemd service files from podman"
     else
         cd - > /dev/null || exit 1
         rm -rf "$TEMP_DIR"
@@ -111,6 +115,8 @@ FileDescriptorStoreMax=0
 [Install]
 WantedBy=default.target
 EOF
+        # Fix SELinux context for manually created file
+        sudo restorecon "${SERVICE_FILE}" 2>/dev/null || true
     fi
 else
     echo "[WARNING] Service file generation failed, creating manually..."
@@ -139,11 +145,16 @@ FileDescriptorStoreMax=0
 [Install]
 WantedBy=default.target
 EOF
+    # Fix SELinux context for manually created file
+    sudo restorecon "${SERVICE_FILE}" 2>/dev/null || true
 fi
 
-# Reload systemd and enable the service
+# Reload systemd and enable all services
 sudo systemctl daemon-reload
 sudo systemctl enable "${SERVICE_NAME}" 2>/dev/null || true
+sudo systemctl enable container-postgres-server.service container-zabbix-snmptraps.service \
+    container-zabbix-server-pgsql.service container-zabbix-agent.service \
+    container-zabbix-web-nginx-pgsql.service 2>/dev/null || true
 sudo systemctl restart "${SERVICE_NAME}" 2>/dev/null || true
 
 echo "------------------------------------------------------------"

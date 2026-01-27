@@ -1,14 +1,16 @@
-# Zabbix 7.2 Containerized SNMP Trap Deployment
+# Zabbix Containerized SNMP Trap Deployment
 
-> **Containerized Zabbix 7.2 monitoring stack with SNMP trap support, deployed via Podman**
+> **Containerized Zabbix monitoring stack with SNMP trap support, deployed via Podman**
 
-![Tested on RHEL 10.1](https://img.shields.io/badge/Tested%20on-RHEL%2010.1-red?style=flat-square) ![Zabbix 7.2](https://img.shields.io/badge/Zabbix-7.2-blue?style=flat-square) ![Podman](https://img.shields.io/badge/Podman-Container-orange?style=flat-square)
+![Tested on RHEL 10.1](https://img.shields.io/badge/Tested%20on-RHEL%2010.1-red?style=flat-square) ![Zabbix 7.4.6](https://img.shields.io/badge/Zabbix-7.4.6-blue?style=flat-square) ![Podman](https://img.shields.io/badge/Podman-Container-orange?style=flat-square)
 
 ---
 
 ## 📋 Overview
 
-This repository provides a complete containerized deployment solution for **Zabbix 7.2** using **Podman**, specifically architected to handle **SNMP Traps** through a shared-volume "trapper" pattern. This design ensures trap data is received by a lightweight listener and processed by the core Zabbix engine without complex internal networking.
+This repository provides a complete containerized deployment solution for **Zabbix** (default version **7.4.6**) using **Podman**, specifically architected to handle **SNMP Traps** through a shared-volume "trapper" pattern. This design ensures trap data is received by a lightweight listener and processed by the core Zabbix engine without complex internal networking.
+
+The Zabbix version is fully configurable via the `ZABBIX_VERSION` variable in `vars.env`, allowing you to deploy any available Zabbix version.
 
 ### Architecture
 
@@ -22,10 +24,10 @@ The deployment uses a shared-volume pattern where:
 | Component | Image | Purpose |
 |-----------|-------|---------|
 | **Database** | `postgres:16-alpine` | PostgreSQL 16 database |
-| **Trap Receiver** | `zabbix/zabbix-snmptraps:alpine-7.2-latest` | Receives and logs SNMP traps |
-| **Core Engine** | `zabbix/zabbix-server-pgsql:alpine-7.2-latest` | Zabbix server processing engine |
-| **Web Interface** | `zabbix/zabbix-web-nginx-pgsql:alpine-7.2-latest` | Web UI for monitoring |
-| **Agent** | `zabbix/zabbix-agent2:alpine-7.2-latest` | Local agent for server monitoring |
+| **Trap Receiver** | `zabbix/zabbix-snmptraps:alpine-${ZABBIX_VERSION}-latest` | Receives and logs SNMP traps |
+| **Core Engine** | `zabbix/zabbix-server-pgsql:alpine-${ZABBIX_VERSION}-latest` | Zabbix server processing engine |
+| **Web Interface** | `zabbix/zabbix-web-nginx-pgsql:alpine-${ZABBIX_VERSION}-latest` | Web UI for monitoring |
+| **Agent** | `zabbix/zabbix-agent2:alpine-${ZABBIX_VERSION}-latest` | Local agent for server monitoring |
 
 ---
 
@@ -58,6 +60,10 @@ vim vars.env
 **Required Configuration:**
 
 ```bash
+# --- ZABBIX VERSION ---
+# Zabbix version to deploy (e.g., 7.4.6, 7.2, 7.0, etc.)
+ZABBIX_VERSION="7.4.6"
+
 # --- DATABASE CONFIG ---
 DB_PASSWORD="your_secure_password"
 
@@ -76,6 +82,13 @@ ZABBIX_SERVER_IP="10.x.x.x"
 INSTALL_DIR="/var/lib/zabbix"
 POD_NAME="zabbix-pod"
 ```
+
+> **Note:** You can change the `ZABBIX_VERSION` variable to deploy any version of Zabbix. For example:
+> - `ZABBIX_VERSION="7.4.6"` (default, latest stable)
+> - `ZABBIX_VERSION="7.2"` (previous stable)
+> - `ZABBIX_VERSION="7.0"` (older stable)
+>
+> Ensure the version you specify has available Docker images at [Zabbix Docker Hub](https://hub.docker.com/u/zabbix).
 
 ---
 

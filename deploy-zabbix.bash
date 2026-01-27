@@ -1,5 +1,5 @@
 #!/bin/bash
-# DESCRIPTION: Deploys Zabbix 7.2 with reboot-persistence and optimized health checks.
+# DESCRIPTION: Deploys Zabbix with reboot-persistence and optimized health checks.
 
 if [ -f "vars.env" ]; then
     source vars.env
@@ -8,7 +8,10 @@ else
     exit 1
 fi
 
-echo "[*] Starting Zabbix v7.2 Deployment for Pod: ${POD_NAME}"
+# Set default version if not specified
+ZABBIX_VERSION=${ZABBIX_VERSION:-7.4.6}
+
+echo "[*] Starting Zabbix v${ZABBIX_VERSION} Deployment for Pod: ${POD_NAME}"
 
 # --- 1. FIREWALL ---
 if systemctl is-active --quiet firewalld; then
@@ -51,7 +54,7 @@ podman run -d --name zabbix-snmptraps --pod "${POD_NAME}" --restart always \
     -v "${INSTALL_DIR}/snmptraps:/var/lib/zabbix/snmptraps:z,U" \
     -v "${INSTALL_DIR}/mibs:/var/lib/zabbix/mibs:z,U" \
     --health-cmd="cat /proc/net/udp | grep 048A" --health-interval=10s \
-    docker.io/zabbix/:centos-7.0.22
+    zabbix/zabbix-snmptraps:alpine-${ZABBIX_VERSION}
 
 # Server
 podman run -d --name zabbix-server-pgsql --pod "${POD_NAME}" --restart always \
@@ -61,7 +64,7 @@ podman run -d --name zabbix-server-pgsql --pod "${POD_NAME}" --restart always \
     -v "${INSTALL_DIR}/extra_cfg/zabbix_server_snmp_traps.conf:/etc/zabbix/zabbix_server_snmp_traps.conf:Z" \
     --health-cmd="zabbix_get -s 127.0.0.1 -k agent.ping || exit 1" \
     --health-interval=10s --health-start-period=60s \
-    docker.io/zabbix/zabbix-server-pgsql:centos-7.0.22
+    zabbix/zabbix-server-pgsql:alpine-${ZABBIX_VERSION}
 
 # Agent (Fix: Unique socket path to prevent Exit 1 crash)
 podman run -d --name zabbix-agent --pod "${POD_NAME}" --restart always \
@@ -69,7 +72,7 @@ podman run -d --name zabbix-agent --pod "${POD_NAME}" --restart always \
     -e ZBX_AGENT2_PLUGINS_SOCKET=/tmp/zabbix-agent2-reboot.sock \
     --health-cmd="zabbix_agent2 -t agent.ping || exit 1" \
     --health-interval=10s --health-start-period=30s \
-    docker.io/zabbix/zabbix-agent2:centos-7.0.22
+    zabbix/zabbix-agent2:alpine-${ZABBIX_VERSION}
 
 # Web Interface
 podman run -d --name zabbix-web-nginx-pgsql --pod "${POD_NAME}" --restart always \
@@ -77,7 +80,7 @@ podman run -d --name zabbix-web-nginx-pgsql --pod "${POD_NAME}" --restart always
     -e POSTGRES_PASSWORD="${DB_PASSWORD}" -e POSTGRES_DB=zabbix \
     --health-cmd="wget --no-verbose --tries=1 --spider http://127.0.0.1:8080/ || exit 1" \
     --health-interval=10s --health-start-period=30s \
-    docker.io/zabbix/zabbix-web-nginx-pgsql:centos-7.0.22
+    zabbix/zabbix-web-nginx-pgsql:alpine-${ZABBIX_VERSION}
 
 # --- 5. SYSTEMD SERVICE FOR BOOT PERSISTENCE ---
 echo "[*] Generating systemd service file for pod..."
@@ -90,12 +93,14 @@ TEMP_DIR=$(mktemp -d)
 cd "$TEMP_DIR" || exit 1
 
 if podman generate systemd --name "${POD_NAME}" --files 2>/dev/null; then
-    # Move the generated service file to systemd directory
+    # Move ALL generated service files to systemd directory
     if [ -f "${TEMP_DIR}/${SERVICE_NAME}" ]; then
-        sudo mv "${TEMP_DIR}/${SERVICE_NAME}" "${SERVICE_FILE}"
+        sudo mv "${TEMP_DIR}"/*.service /etc/systemd/system/
+        # Fix SELinux contexts
+        sudo restorecon -R /etc/systemd/system/*.service 2>/dev/null || true
         cd - > /dev/null || exit 1
         rm -rf "$TEMP_DIR"
-        echo "[OK] Generated systemd service file from podman"
+        echo "[OK] Generated systemd service files from podman"
     else
         cd - > /dev/null || exit 1
         rm -rf "$TEMP_DIR"
@@ -123,6 +128,8 @@ FileDescriptorStoreMax=0
 [Install]
 WantedBy=default.target
 EOF
+        # Fix SELinux context for manually created file
+        sudo restorecon "${SERVICE_FILE}" 2>/dev/null || true
     fi
 else
     echo "[WARNING] Service file generation failed, creating manually..."
@@ -151,11 +158,16 @@ FileDescriptorStoreMax=0
 [Install]
 WantedBy=default.target
 EOF
+    # Fix SELinux context for manually created file
+    sudo restorecon "${SERVICE_FILE}" 2>/dev/null || true
 fi
 
-# Reload systemd and enable the service
+# Reload systemd and enable all services
 sudo systemctl daemon-reload
 sudo systemctl enable "${SERVICE_NAME}"
+sudo systemctl enable container-postgres-server.service container-zabbix-snmptraps.service \
+    container-zabbix-server-pgsql.service container-zabbix-agent.service \
+    container-zabbix-web-nginx-pgsql.service 2>/dev/null || true
 # Start the service to ensure it's running (it should already be running, but this ensures systemd knows about it)
 sudo systemctl start "${SERVICE_NAME}" 2>/dev/null || true
 

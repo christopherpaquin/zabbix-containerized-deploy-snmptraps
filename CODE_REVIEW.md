@@ -2,7 +2,7 @@
 
 ## Executive Summary
 
-This repository provides a well-structured containerized Zabbix 7.2 deployment using Podman, specifically designed for SNMP trap monitoring. The code is functional and well-documented, but there are several areas for improvement in security, error handling, and maintainability.
+This repository provides a well-structured containerized Zabbix deployment (configurable version, default 7.4.6) using Podman, specifically designed for SNMP trap monitoring. The code is functional and well-documented, but there are several areas for improvement in security, error handling, and maintainability.
 
 **Overall Assessment:** ⭐⭐⭐⭐ (4/5) - Production-ready with recommended improvements
 
@@ -178,12 +178,12 @@ fi
 - SELinux considerations included
 
 ### 🟡 Improvements Needed
-- **Missing:** Container version pinning (uses `:latest` tags`)
+- **Note:** ✅ Version is now configurable via `ZABBIX_VERSION` variable in `vars.env`
 - **Missing:** Health check dependencies (web waits for DB)
 - **Missing:** Graceful shutdown handling
-- **Recommendation:** Use specific image tags:
+- **Recommendation:** For production, consider using specific patch versions:
 ```bash
-zabbix/zabbix-server-pgsql:alpine-7.2.0  # Instead of :alpine-7.2-latest
+ZABBIX_VERSION="7.4.6"  # Instead of major version like "7.4"
 ```
 
 ---
@@ -203,7 +203,7 @@ zabbix/zabbix-server-pgsql:alpine-7.2.0  # Instead of :alpine-7.2-latest
 ```bash
 #!/bin/bash
 # USAGE: ./deploy-zabbix.bash
-# DESCRIPTION: Deploys Zabbix 7.2 stack using Podman
+# DESCRIPTION: Deploys Zabbix stack using Podman (version configurable in vars.env)
 # REQUIREMENTS: vars.env file with required variables
 # EXIT CODES: 0=success, 1=error
 ```
