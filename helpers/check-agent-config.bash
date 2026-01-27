@@ -35,13 +35,20 @@ AGENT_CONF=""
 AGENT_SERVICE=""
 
 # Determine which agent is installed
+AGENT2_PRESENT=false
+AGENT1_PRESENT=false
+
 if [ -f "/etc/zabbix/zabbix_agent2.conf" ]; then
     AGENT_CONF="/etc/zabbix/zabbix_agent2.conf"
     AGENT_SERVICE="zabbix-agent2"
-elif [ -f "/etc/zabbix/zabbix_agentd.conf" ]; then
-    AGENT_CONF="/etc/zabbix/zabbix_agentd.conf"
-    AGENT_SERVICE="zabbix-agent"
-else
+    AGENT2_PRESENT=true
+fi
+
+if [ -f "/etc/zabbix/zabbix_agentd.conf" ]; then
+    AGENT1_PRESENT=true
+fi
+
+if [ "$AGENT2_PRESENT" = false ] && [ "$AGENT1_PRESENT" = false ]; then
     print_status "FAIL" "No Zabbix agent configuration found"
     echo "    Install Zabbix agent: dnf install zabbix-agent2"
     exit 1
@@ -49,6 +56,18 @@ fi
 
 echo -e "${BLUE}[1/6] Agent Installation${NC}"
 print_status "OK" "Found $AGENT_SERVICE configuration: $AGENT_CONF"
+
+# Warn if both agents are present
+if [ "$AGENT2_PRESENT" = true ] && [ "$AGENT1_PRESENT" = true ]; then
+    print_status "WARN" "Both Agent 1 and Agent 2 are installed!"
+    echo "    Old config: /etc/zabbix/zabbix_agentd.conf"
+    echo "    New config: /etc/zabbix/zabbix_agent2.conf"
+    echo ""
+    echo "    If you upgraded from Agent 1 to Agent 2, you may need to:"
+    echo "    - Copy custom scripts to new directories"
+    echo "    - Migrate user parameters from zabbix_agentd.d/ to zabbix_agent2.d/"
+    echo "    - Stop old agent: systemctl stop zabbix-agent && systemctl disable zabbix-agent"
+fi
 echo ""
 
 # Check agent service status

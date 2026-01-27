@@ -144,6 +144,24 @@ Common fixes:
 | Agent not running | `systemctl start zabbix-agent2 && systemctl enable zabbix-agent2` |
 | NUT not installed | `dnf install nut && configure /etc/ups/` |
 | Hostname mismatch | Match hostname in Zabbix UI with agent's `Hostname=` parameter |
+| Agent upgraded to Agent2 | Move scripts to new directories (see below) |
+
+**Important: Zabbix Agent vs Agent2 Differences**
+
+When upgrading from `zabbix-agent` to `zabbix-agent2`, directory locations change:
+
+| Component | Agent (old) | Agent2 (new) |
+|-----------|-------------|--------------|
+| Config file | `/etc/zabbix/zabbix_agentd.conf` | `/etc/zabbix/zabbix_agent2.conf` |
+| Scripts directory | `/usr/lib/zabbix/externalscripts/` | `/var/lib/zabbix/externalscripts/` or `/usr/lib/zabbix/externalscripts/` |
+| User parameters | `/etc/zabbix/zabbix_agentd.d/*.conf` | `/etc/zabbix/zabbix_agent2.d/*.conf` |
+| Plugins | N/A | `/etc/zabbix/zabbix_agent2.d/plugins.d/*.conf` |
+
+After upgrading to Agent2, you must:
+1. Copy custom scripts to the new location
+2. Migrate user parameters to new config directory
+3. Configure plugins (e.g., NUT) in plugins.d/
+4. Update service name: `zabbix-agent` → `zabbix-agent2`
 
 **Step 4:** Restart agent and retest
 ```bash
