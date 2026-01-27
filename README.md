@@ -495,6 +495,25 @@ The system maintains a flat directory structure for optimal indexing:
 | `fix-zabbix.bash` | Force-clean and redeploy stuck containers |
 | `manage-mibs.bash` | MIB library management |
 | `test-network-trap.bash` | Send test SNMP traps |
+| `helpers/test-agent-connectivity.bash` | Test agent connectivity from Zabbix server |
+| `helpers/check-agent-config.bash` | Check agent configuration on monitored host |
+
+### Helper Scripts
+
+The `helpers/` directory contains troubleshooting scripts for diagnosing agent connectivity issues:
+
+**Test Agent Connectivity** (run from Zabbix server):
+```bash
+./helpers/test-agent-connectivity.bash <hostname_or_ip>
+```
+
+**Check Agent Configuration** (run on monitored host):
+```bash
+scp helpers/check-agent-config.bash root@<hostname>:/tmp/
+ssh root@<hostname> '/tmp/check-agent-config.bash'
+```
+
+See `helpers/README.md` for detailed documentation and troubleshooting workflows.
 
 ---
 
