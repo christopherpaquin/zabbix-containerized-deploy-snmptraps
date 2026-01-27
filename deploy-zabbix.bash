@@ -9,7 +9,7 @@ else
 fi
 
 # Set default version if not specified
-ZABBIX_VERSION=${ZABBIX_VERSION:-7.4.6}
+ZABBIX_VERSION=${ZABBIX_VERSION}
 
 echo "[*] Starting Zabbix v${ZABBIX_VERSION} Deployment for Pod: ${POD_NAME}"
 
