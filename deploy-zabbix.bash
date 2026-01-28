@@ -44,7 +44,7 @@ podman run -d --name postgres-server --pod "${POD_NAME}" --restart always \
     -e POSTGRES_USER=zabbix -e POSTGRES_PASSWORD="${DB_PASSWORD}" -e POSTGRES_DB=zabbix \
     -v "${INSTALL_DIR}/postgres:/var/lib/postgresql/data:Z,U" \
     --health-cmd="pg_isready -U zabbix" --health-interval=10s --health-start-period=30s \
-    postgres:16-alpine
+    postgres:16
 
 sleep 10
 
@@ -84,7 +84,7 @@ podman run -d --name zabbix-web-nginx-pgsql --pod "${POD_NAME}" --restart always
 
 # --- 5. SYSTEMD SERVICE FOR BOOT PERSISTENCE ---
 echo "[*] Generating systemd service file for pod..."
-SERVICE_NAME="pod-${POD_NAME}.service"
+SERVICE_NAME="${POD_NAME}.service"
 SERVICE_FILE="/etc/systemd/system/${SERVICE_NAME}"
 
 # Generate systemd service file for the pod (without --new to use existing containers)
