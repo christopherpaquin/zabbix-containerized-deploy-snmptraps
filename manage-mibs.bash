@@ -4,7 +4,7 @@
 
 if [ -f "vars.env" ]; then source vars.env; else echo "[ERROR] vars.env missing"; exit 1; fi
 
-CONF_FILE="mibs.conf"
+CONF_FILE="${MIBS_CONF_FILE}"
 MIB_DIR="${INSTALL_DIR}/mibs"
 mkdir -p "${MIB_DIR}"
 
@@ -91,7 +91,7 @@ echo "    -> Location: ${MIB_DIR}"
 echo "    -> Total Files: ${FILE_COUNT}"
 echo "-------------------------------------------------------"
 echo "[*] Restarting Zabbix containers to index new MIBs..."
-podman restart zabbix-snmptraps zabbix-server-pgsql > /dev/null
+podman restart ${CONTAINER_SNMPTRAPS} ${CONTAINER_SERVER} > /dev/null
 
 echo "======================================================="
 echo "[OK] MIB Update Cycle Complete."

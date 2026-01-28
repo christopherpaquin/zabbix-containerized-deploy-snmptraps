@@ -14,9 +14,9 @@ podman pod rm -f "${POD_NAME}" 2>/dev/null
 
 # --- FIREWALL CLEANUP ---
 if systemctl is-active --quiet firewalld; then
-    echo "[*] Closing firewall ports 162/udp and 80/tcp..."
-    sudo firewall-cmd --remove-port=162/udp --permanent >/dev/null 2>&1
-    sudo firewall-cmd --remove-port=80/tcp --permanent >/dev/null 2>&1
+    echo "[*] Closing firewall ports ${PORT_SNMP_TRAP}/udp and ${PORT_WEB_HTTP}/tcp..."
+    sudo firewall-cmd --remove-port=${PORT_SNMP_TRAP}/udp --permanent >/dev/null 2>&1
+    sudo firewall-cmd --remove-port=${PORT_WEB_HTTP}/tcp --permanent >/dev/null 2>&1
     sudo firewall-cmd --reload >/dev/null 2>&1
     echo "[OK] Firewall ports closed."
 fi

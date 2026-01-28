@@ -46,7 +46,88 @@ Controls which version of Zabbix container images are pulled from Docker Hub. Al
 
 ---
 
-### 2. `DB_PASSWORD`
+### 2. `POSTGRES_VERSION`
+
+**Description:** PostgreSQL container image version.
+
+**Type:** String (image tag)
+
+**Default:** `"16-alpine"`
+
+**Examples:**
+- `"16-alpine"` - PostgreSQL 16 Alpine Linux (default, lightweight)
+- `"15-alpine"` - PostgreSQL 15 Alpine Linux
+- `"16"` - PostgreSQL 16 Debian-based (larger image)
+
+**Used By:**
+- ✅ `deploy-zabbix.bash` - Specifies PostgreSQL container image
+- ✅ `fix-zabbix.bash` - Uses same version when redeploying
+
+**Purpose:**
+Controls which PostgreSQL version is used for the Zabbix database. Alpine variants are recommended for smaller image size.
+
+**Docker Image:**
+- `postgres:${POSTGRES_VERSION}`
+
+**Notes:**
+- Alpine images are ~50% smaller than Debian-based images
+- PostgreSQL 16 is recommended for Zabbix 7.x
+- Changing this requires database migration or fresh deployment
+
+---
+
+### 3. `POSTGRES_USER`
+
+**Description:** PostgreSQL database username for Zabbix.
+
+**Type:** String
+
+**Default:** `"zabbix"`
+
+**Used By:**
+- ✅ `deploy-zabbix.bash` - Creates database user and configures connections
+- ✅ `fix-zabbix.bash` - Uses for database connections
+
+**Purpose:**
+Defines the PostgreSQL username that owns the Zabbix database and is used by Zabbix server and web interface to connect.
+
+**Environment Variables Set:**
+- `POSTGRES_USER=${POSTGRES_USER}` (postgres, server, web containers)
+
+**Notes:**
+- Must match across all containers
+- Used in health check: `pg_isready -U ${POSTGRES_USER}`
+- Changing this requires database recreation
+
+---
+
+### 4. `POSTGRES_DB`
+
+**Description:** PostgreSQL database name for Zabbix.
+
+**Type:** String
+
+**Default:** `"zabbix"`
+
+**Used By:**
+- ✅ `deploy-zabbix.bash` - Creates database and configures connections
+- ✅ `fix-zabbix.bash` - Uses for database connections
+
+**Purpose:**
+Defines the PostgreSQL database name where Zabbix stores all monitoring data, configuration, and historical information.
+
+**Environment Variables Set:**
+- `POSTGRES_DB=${POSTGRES_DB}` (postgres, server, web containers)
+
+**Notes:**
+- Must match across all containers
+- Automatically created by PostgreSQL container on first run
+- Contains all Zabbix tables and data
+- Changing this requires database recreation
+
+---
+
+### 5. `DB_PASSWORD`
 
 **Description:** PostgreSQL database password for the Zabbix database.
 
@@ -70,12 +151,12 @@ Configures the PostgreSQL database password and ensures Zabbix server and web in
 
 **Notes:**
 - Used by 3 containers: postgres-server, zabbix-server-pgsql, zabbix-web-nginx-pgsql
-- Database user is hardcoded as `zabbix`
-- Database name is hardcoded as `zabbix`
+- Must be strong and unique for production
+- Works with `POSTGRES_USER` and `POSTGRES_DB` for complete database configuration
 
 ---
 
-### 3. `SNMP_COMMUNITY`
+### 6. `SNMP_COMMUNITY`
 
 **Description:** SNMP community string for receiving SNMP traps.
 
@@ -102,7 +183,33 @@ Defines the SNMP community string that network devices must use when sending SNM
 
 ---
 
-### 4. `TEST_SENDER_IP`
+### 7. `ZBX_AGENT_HOSTNAME`
+
+**Description:** Hostname displayed for the local Zabbix agent running on the server.
+
+**Type:** String
+
+**Default:** `"Zabbix server"`
+
+**Used By:**
+- ✅ `deploy-zabbix.bash` - Configures local agent hostname
+- ✅ `fix-zabbix.bash` - Reconfigures agent hostname
+
+**Purpose:**
+Sets the hostname that appears in the Zabbix web interface for the local monitoring agent. This is the agent that monitors the Zabbix server itself.
+
+**Environment Variable Set:**
+- `ZBX_HOSTNAME="${ZBX_AGENT_HOSTNAME}"` (zabbix-agent container)
+
+**Notes:**
+- Must match the host configuration in Zabbix web interface
+- Default "Zabbix server" is standard convention
+- Can be changed to match your naming scheme (e.g., "zabbix.lab")
+- This is different from the system hostname
+
+---
+
+### 8. `TEST_SENDER_IP`
 
 **Description:** IP address of the machine used for remote testing.
 
@@ -120,7 +227,7 @@ Reserved for future use. Intended to identify the IP address of a remote machine
 
 ---
 
-### 5. `ZABBIX_SERVER_IP`
+### 9. `ZABBIX_SERVER_IP`
 
 **Description:** Physical IP address of the Zabbix server host.
 
@@ -140,7 +247,7 @@ Reserved for future use. Intended for documentation or scripts that need to refe
 
 ---
 
-### 6. `INSTALL_DIR`
+### 10. `INSTALL_DIR`
 
 **Description:** Base directory path for all persistent Zabbix data storage.
 
@@ -182,7 +289,7 @@ ${INSTALL_DIR}/
 
 ---
 
-### 7. `POD_NAME`
+### 11. `POD_NAME`
 
 **Description:** Name of the Podman pod that contains all Zabbix containers.
 
@@ -223,8 +330,12 @@ Identifies the Podman pod that groups all Zabbix-related containers together. Th
 
 ### Required Variables (Must be set)
 - ✅ `ZABBIX_VERSION` - Required for image tags
+- ✅ `POSTGRES_VERSION` - Required for PostgreSQL image
+- ✅ `POSTGRES_USER` - Required for database user
+- ✅ `POSTGRES_DB` - Required for database name
 - ✅ `DB_PASSWORD` - Required for database authentication
 - ✅ `SNMP_COMMUNITY` - Required for SNMP trap reception
+- ✅ `ZBX_AGENT_HOSTNAME` - Required for local agent identification
 - ✅ `INSTALL_DIR` - Required for data persistence
 - ✅ `POD_NAME` - Required for pod/container naming
 
@@ -239,8 +350,12 @@ Identifies the Podman pod that groups all Zabbix-related containers together. Th
 | Variable | deploy | fix | troubleshoot | health | cleanup | manage-mibs | test-trap |
 |----------|--------|-----|--------------|--------|---------|-------------|-----------|
 | `ZABBIX_VERSION` | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| `POSTGRES_VERSION` | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| `POSTGRES_USER` | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| `POSTGRES_DB` | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
 | `DB_PASSWORD` | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
 | `SNMP_COMMUNITY` | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ | ✅ |
+| `ZBX_AGENT_HOSTNAME` | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
 | `TEST_SENDER_IP` | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
 | `ZABBIX_SERVER_IP` | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
 | `INSTALL_DIR` | ✅ | ✅ | ✅ | ❌ | ✅ | ✅ | ❌ |
@@ -258,11 +373,11 @@ The following scripts source the `vars.env` file and require it to exist:
 
 1. **`deploy-zabbix.bash`**
    - Exit on missing: ✅ Yes
-   - Variables used: `ZABBIX_VERSION`, `DB_PASSWORD`, `SNMP_COMMUNITY`, `INSTALL_DIR`, `POD_NAME`
+   - Variables used: `ZABBIX_VERSION`, `POSTGRES_VERSION`, `POSTGRES_USER`, `POSTGRES_DB`, `DB_PASSWORD`, `SNMP_COMMUNITY`, `ZBX_AGENT_HOSTNAME`, `INSTALL_DIR`, `POD_NAME`
 
 2. **`fix-zabbix.bash`**
    - Exit on missing: ✅ Yes
-   - Variables used: `ZABBIX_VERSION`, `DB_PASSWORD`, `SNMP_COMMUNITY`, `INSTALL_DIR`, `POD_NAME`
+   - Variables used: `ZABBIX_VERSION`, `POSTGRES_VERSION`, `POSTGRES_USER`, `POSTGRES_DB`, `DB_PASSWORD`, `SNMP_COMMUNITY`, `ZBX_AGENT_HOSTNAME`, `INSTALL_DIR`, `POD_NAME`
 
 3. **`troubleshoot-zabbix.bash`**
    - Exit on missing: ✅ Yes
@@ -300,8 +415,12 @@ The helper scripts in `helpers/` directory **do not** source `vars.env`:
 ### Minimal Production Configuration
 ```bash
 ZABBIX_VERSION="7.4.6"
+POSTGRES_VERSION="16-alpine"
+POSTGRES_USER="zabbix"
+POSTGRES_DB="zabbix"
 DB_PASSWORD="MySecureP@ssw0rd123!"
 SNMP_COMMUNITY="private"
+ZBX_AGENT_HOSTNAME="Zabbix server"
 INSTALL_DIR="/var/lib/zabbix"
 POD_NAME="zabbix-pod"
 ```
@@ -309,8 +428,12 @@ POD_NAME="zabbix-pod"
 ### Development/Testing Configuration
 ```bash
 ZABBIX_VERSION="7.4.6"
+POSTGRES_VERSION="16-alpine"
+POSTGRES_USER="zabbix"
+POSTGRES_DB="zabbix"
 DB_PASSWORD="dev_password_123"
 SNMP_COMMUNITY="public"
+ZBX_AGENT_HOSTNAME="Zabbix server"
 INSTALL_DIR="/var/lib/zabbix"
 POD_NAME="zabbix-pod"
 ```
@@ -319,10 +442,28 @@ POD_NAME="zabbix-pod"
 ```bash
 # For testing different versions, change POD_NAME and INSTALL_DIR
 ZABBIX_VERSION="7.2"
+POSTGRES_VERSION="15-alpine"
+POSTGRES_USER="zabbix"
+POSTGRES_DB="zabbix"
 DB_PASSWORD="test_password"
 SNMP_COMMUNITY="public"
+ZBX_AGENT_HOSTNAME="Zabbix server 7.2"
 INSTALL_DIR="/var/lib/zabbix-7.2"
 POD_NAME="zabbix-pod-7.2"
+```
+
+### Custom Database Configuration
+```bash
+# Using custom database names and non-Alpine PostgreSQL
+ZABBIX_VERSION="7.4.6"
+POSTGRES_VERSION="16"  # Debian-based instead of Alpine
+POSTGRES_USER="zbx_admin"
+POSTGRES_DB="monitoring_db"
+DB_PASSWORD="ComplexP@ssw0rd!2024"
+SNMP_COMMUNITY="private_community_123"
+ZBX_AGENT_HOSTNAME="prod-zabbix-01"
+INSTALL_DIR="/var/lib/zabbix"
+POD_NAME="zabbix-pod"
 ```
 
 ---
@@ -336,7 +477,12 @@ POD_NAME="zabbix-pod-7.2"
    - Never commit actual `vars.env` to version control
    - Only `vars.env.template` should be in git
 
-2. **`SNMP_COMMUNITY`** 🔐
+2. **`POSTGRES_USER`** 🔐
+   - While not a password, consider using non-default username
+   - Default "zabbix" is well-known and predictable
+   - Custom username adds extra security layer
+
+3. **`SNMP_COMMUNITY`** 🔐
    - Default `"public"` is insecure for production
    - Use unique community string per deployment
    - Consider SNMP v3 for enhanced security
@@ -428,6 +574,9 @@ These variables are defined but not yet implemented:
 | 2026-01-25 | Added `ZABBIX_VERSION` variable | Make version configurable |
 | 2026-01-25 | Changed default to 7.4.6 | Updated to latest stable |
 | 2026-01-27 | Created this documentation | User request for variable reference |
+| 2026-01-27 | Moved database config to vars.env | Removed hardcoded PostgreSQL settings |
+| 2026-01-27 | Added `POSTGRES_VERSION`, `POSTGRES_USER`, `POSTGRES_DB`, `ZBX_AGENT_HOSTNAME` | Better configurability and maintainability |
+| 2026-01-27 | Removed version defaults from scripts | All versions now sourced from vars.env only |
 
 ---
 

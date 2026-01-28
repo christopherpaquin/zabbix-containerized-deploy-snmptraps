@@ -8,16 +8,13 @@ else
     exit 1
 fi
 
-# Set default version if not specified
-ZABBIX_VERSION=${ZABBIX_VERSION:-7.4.6}
-
 echo "[*] Starting Zabbix v${ZABBIX_VERSION} Deployment for Pod: ${POD_NAME}"
 
 # --- 1. FIREWALL ---
 if systemctl is-active --quiet firewalld; then
-    echo "[*] Opening ports 162/udp and 80/tcp..."
-    sudo firewall-cmd --add-port=162/udp --permanent >/dev/null 2>&1
-    sudo firewall-cmd --add-port=80/tcp --permanent >/dev/null 2>&1
+    echo "[*] Opening ports ${PORT_SNMP_TRAP}/udp and ${PORT_WEB_HTTP}/tcp..."
+    sudo firewall-cmd --add-port=${PORT_SNMP_TRAP}/udp --permanent >/dev/null 2>&1
+    sudo firewall-cmd --add-port=${PORT_WEB_HTTP}/tcp --permanent >/dev/null 2>&1
     sudo firewall-cmd --reload >/dev/null 2>&1
 fi
 
@@ -37,19 +34,19 @@ EOF
 # --- 4. POD & CONTAINERS ---
 podman pod rm -f "${POD_NAME}" 2>/dev/null
 podman pod create --name "${POD_NAME}" --restart always \
-    -p 80:8080 -p 443:8443 -p 10051:10051 -p 162:1162/udp
+    -p ${PORT_WEB_HTTP}:${PORT_WEB_INTERNAL} -p ${PORT_WEB_HTTPS}:${PORT_HTTPS_INTERNAL} -p ${PORT_ZABBIX_SERVER}:${PORT_ZABBIX_SERVER} -p ${PORT_SNMP_TRAP}:${PORT_TRAP_INTERNAL}/udp
 
 # Database
-podman run -d --name postgres-server --pod "${POD_NAME}" --restart always \
-    -e POSTGRES_USER=zabbix -e POSTGRES_PASSWORD="${DB_PASSWORD}" -e POSTGRES_DB=zabbix \
+podman run -d --name ${CONTAINER_POSTGRES} --pod "${POD_NAME}" --restart always \
+    -e POSTGRES_USER="${POSTGRES_USER}" -e POSTGRES_PASSWORD="${DB_PASSWORD}" -e POSTGRES_DB="${POSTGRES_DB}" \
     -v "${INSTALL_DIR}/postgres:/var/lib/postgresql/data:Z,U" \
-    --health-cmd="pg_isready -U zabbix" --health-interval=10s --health-start-period=30s \
-    postgres:16-alpine
+    --health-cmd="pg_isready -U ${POSTGRES_USER}" --health-interval=10s --health-start-period=30s \
+    postgres:${POSTGRES_VERSION}
 
 sleep 10
 
 # Traps Receiver
-podman run -d --name zabbix-snmptraps --pod "${POD_NAME}" --restart always \
+podman run -d --name ${CONTAINER_SNMPTRAPS} --pod "${POD_NAME}" --restart always \
     -e ZBX_SNMP_COMMUNITY="${SNMP_COMMUNITY}" \
     -v "${INSTALL_DIR}/snmptraps:/var/lib/zabbix/snmptraps:z,U" \
     -v "${INSTALL_DIR}/mibs:/var/lib/zabbix/mibs:z,U" \
@@ -57,8 +54,8 @@ podman run -d --name zabbix-snmptraps --pod "${POD_NAME}" --restart always \
     zabbix/zabbix-snmptraps:alpine-${ZABBIX_VERSION}
 
 # Server
-podman run -d --name zabbix-server-pgsql --pod "${POD_NAME}" --restart always \
-    -e DB_SERVER_HOST=127.0.0.1 -e POSTGRES_USER=zabbix -e POSTGRES_PASSWORD="${DB_PASSWORD}" -e POSTGRES_DB=zabbix \
+podman run -d --name ${CONTAINER_SERVER} --pod "${POD_NAME}" --restart always \
+    -e DB_SERVER_HOST=127.0.0.1 -e POSTGRES_USER="${POSTGRES_USER}" -e POSTGRES_PASSWORD="${DB_PASSWORD}" -e POSTGRES_DB="${POSTGRES_DB}" \
     -v "${INSTALL_DIR}/snmptraps:/var/lib/zabbix/snmptraps:z,U" \
     -v "${INSTALL_DIR}/mibs:/var/lib/zabbix/mibs:z,U" \
     -v "${INSTALL_DIR}/extra_cfg/zabbix_server_snmp_traps.conf:/etc/zabbix/zabbix_server_snmp_traps.conf:Z" \
@@ -67,18 +64,18 @@ podman run -d --name zabbix-server-pgsql --pod "${POD_NAME}" --restart always \
     zabbix/zabbix-server-pgsql:alpine-${ZABBIX_VERSION}
 
 # Agent (Fix: Unique socket path to prevent Exit 1 crash)
-podman run -d --name zabbix-agent --pod "${POD_NAME}" --restart always \
-    -e ZBX_SERVER_HOST=127.0.0.1 -e ZBX_HOSTNAME="Zabbix server" \
+podman run -d --name ${CONTAINER_AGENT} --pod "${POD_NAME}" --restart always \
+    -e ZBX_SERVER_HOST=127.0.0.1 -e ZBX_HOSTNAME="${ZBX_AGENT_HOSTNAME}" \
     -e ZBX_AGENT2_PLUGINS_SOCKET=/tmp/zabbix-agent2-reboot.sock \
     --health-cmd="zabbix_agent2 -t agent.ping || exit 1" \
     --health-interval=10s --health-start-period=30s \
     zabbix/zabbix-agent2:alpine-${ZABBIX_VERSION}
 
 # Web Interface
-podman run -d --name zabbix-web-nginx-pgsql --pod "${POD_NAME}" --restart always \
-    -e ZBX_SERVER_HOST=127.0.0.1 -e DB_SERVER_HOST=127.0.0.1 -e POSTGRES_USER=zabbix \
-    -e POSTGRES_PASSWORD="${DB_PASSWORD}" -e POSTGRES_DB=zabbix \
-    --health-cmd="wget --no-verbose --tries=1 --spider http://127.0.0.1:8080/ || exit 1" \
+podman run -d --name ${CONTAINER_WEB} --pod "${POD_NAME}" --restart always \
+    -e ZBX_SERVER_HOST=127.0.0.1 -e DB_SERVER_HOST=127.0.0.1 -e POSTGRES_USER="${POSTGRES_USER}" \
+    -e POSTGRES_PASSWORD="${DB_PASSWORD}" -e POSTGRES_DB="${POSTGRES_DB}" \
+    --health-cmd="wget --no-verbose --tries=1 --spider http://127.0.0.1:${PORT_WEB_INTERNAL}/ || exit 1" \
     --health-interval=10s --health-start-period=30s \
     zabbix/zabbix-web-nginx-pgsql:alpine-${ZABBIX_VERSION}
 
@@ -165,9 +162,9 @@ fi
 # Reload systemd and enable all services
 sudo systemctl daemon-reload
 sudo systemctl enable "${SERVICE_NAME}"
-sudo systemctl enable container-postgres-server.service container-zabbix-snmptraps.service \
-    container-zabbix-server-pgsql.service container-zabbix-agent.service \
-    container-zabbix-web-nginx-pgsql.service 2>/dev/null || true
+sudo systemctl enable container-${CONTAINER_POSTGRES}.service container-${CONTAINER_SNMPTRAPS}.service \
+    container-${CONTAINER_SERVER}.service container-${CONTAINER_AGENT}.service \
+    container-${CONTAINER_WEB}.service 2>/dev/null || true
 # Start the service to ensure it's running (it should already be running, but this ensures systemd knows about it)
 sudo systemctl start "${SERVICE_NAME}" 2>/dev/null || true
 

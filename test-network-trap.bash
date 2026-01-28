@@ -9,10 +9,9 @@ else
 fi
 
 MESSAGE="${1:-LAB_ENV_VALIDATION_TEST}"
-TRAP_OID="1.3.6.1.4.1.9.9.41.1.2.3.1.2.1"
 
-echo "[*] Sending trap to Localhost:162 using community: ${SNMP_COMMUNITY}"
+echo "[*] Sending trap to ${TRAP_TEST_TARGET}:${PORT_SNMP_TRAP} using community: ${SNMP_COMMUNITY}"
 
-snmptrap -v 2c -c "$SNMP_COMMUNITY" 127.0.0.1:162 "" "$TRAP_OID" "$TRAP_OID" s "$MESSAGE"
+snmptrap -v 2c -c "$SNMP_COMMUNITY" ${TRAP_TEST_TARGET}:${PORT_SNMP_TRAP} "" "$TRAP_TEST_OID" "$TRAP_TEST_OID" s "$MESSAGE"
 
 [ $? -eq 0 ] && echo "[OK] Trap sent." || echo "[FAIL] Check net-snmp-utils."

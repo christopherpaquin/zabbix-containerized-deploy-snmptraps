@@ -6,16 +6,17 @@
 if [ -f "vars.env" ]; then
     source vars.env
 else
-    POD_NAME="zabbix-pod" # Fallback default
+    echo "[ERROR] vars.env not found!"
+    exit 1
 fi
 
 # Define the containers to check
 CONTAINERS=(
-    "postgres-server"
-    "zabbix-snmptraps"
-    "zabbix-server-pgsql"
-    "zabbix-agent"
-    "zabbix-web-nginx-pgsql"
+    "${CONTAINER_POSTGRES}"
+    "${CONTAINER_SNMPTRAPS}"
+    "${CONTAINER_SERVER}"
+    "${CONTAINER_AGENT}"
+    "${CONTAINER_WEB}"
 )
 
 echo "Checking Zabbix Stack Health for Pod: ${POD_NAME}"
@@ -67,7 +68,7 @@ echo "------------------------------------------------------------"
 
 # Final summary check for the Zabbix Server logs to catch any late database issues
 echo "[*] Checking Zabbix Server log for critical errors..."
-ERRORS=$(podman logs zabbix-server-pgsql --tail 50 2>&1 | grep -Ei "database is down|connection lost|access denied")
+ERRORS=$(podman logs ${CONTAINER_SERVER} --tail 50 2>&1 | grep -Ei "database is down|connection lost|access denied")
 
 if [ -n "$ERRORS" ]; then
     echo -e "\e[31m[ALERT] Critical messages found in logs:\e[0m"

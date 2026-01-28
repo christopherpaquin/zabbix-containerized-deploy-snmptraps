@@ -10,9 +10,7 @@ if [ -f "vars.env" ]; then
     source vars.env
 else
     echo "[ERROR] vars.env not found in $SCRIPT_DIR"
-    echo "[INFO] Using default values..."
-    INSTALL_DIR="/var/lib/zabbix"
-    POD_NAME="zabbix-pod"
+    exit 1
 fi
 
 # Color codes
@@ -115,19 +113,20 @@ check_snmptraps() {
         
         # Check if container is listening on port 1162
         print_section "Port Listening Check"
-        if podman exec zabbix-snmptraps cat /proc/net/udp 2>/dev/null | grep -q "048A"; then
-            print_ok "Container is listening on UDP port 1162 (0x048A)"
+        HEX_PORT=$(printf '%04X' ${PORT_TRAP_INTERNAL})
+        if podman exec ${CONTAINER_SNMPTRAPS} cat /proc/net/udp 2>/dev/null | grep -q "$HEX_PORT"; then
+            print_ok "Container is listening on UDP port ${PORT_TRAP_INTERNAL} (0x${HEX_PORT})"
         else
-            print_error "Container is NOT listening on UDP port 1162"
+            print_error "Container is NOT listening on UDP port ${PORT_TRAP_INTERNAL}"
         fi
         
         # Check host port mapping
         print_section "Host Port Mapping"
-        if ss -ulnp 2>/dev/null | grep -q ":162 "; then
-            print_ok "Host port 162/udp is listening"
-            ss -ulnp 2>/dev/null | grep ":162 " | sed 's/^/  /'
+        if ss -ulnp 2>/dev/null | grep -q ":${PORT_SNMP_TRAP} "; then
+            print_ok "Host port ${PORT_SNMP_TRAP}/udp is listening"
+            ss -ulnp 2>/dev/null | grep ":${PORT_SNMP_TRAP} " | sed 's/^/  /'
         else
-            print_error "Host port 162/udp is NOT listening"
+            print_error "Host port ${PORT_SNMP_TRAP}/udp is NOT listening"
         fi
         
         # Check traps log file
@@ -180,11 +179,11 @@ check_snmptraps() {
     print_section "Firewall Rules"
     if systemctl is-active --quiet firewalld 2>/dev/null; then
         print_info "Firewalld is active"
-        if sudo firewall-cmd --list-ports 2>/dev/null | grep -q "162/udp"; then
-            print_ok "Port 162/udp is open in firewall"
+        if sudo firewall-cmd --list-ports 2>/dev/null | grep -q "${PORT_SNMP_TRAP}/udp"; then
+            print_ok "Port ${PORT_SNMP_TRAP}/udp is open in firewall"
         else
-            print_error "Port 162/udp is NOT open in firewall"
-            print_info "Run: sudo firewall-cmd --add-port=162/udp --permanent && sudo firewall-cmd --reload"
+            print_error "Port ${PORT_SNMP_TRAP}/udp is NOT open in firewall"
+            print_info "Run: sudo firewall-cmd --add-port=${PORT_SNMP_TRAP}/udp --permanent && sudo firewall-cmd --reload"
         fi
     else
         print_info "Firewalld is not active (or not installed)"
@@ -193,9 +192,9 @@ check_snmptraps() {
     # Test trap reception
     print_section "Test Trap Reception"
     if command -v snmptrap >/dev/null 2>&1; then
-        print_info "Testing trap reception (sending test trap to localhost:162)..."
+        print_info "Testing trap reception (sending test trap to ${TRAP_TEST_TARGET}:${PORT_SNMP_TRAP})..."
         if [ -n "$SNMP_COMMUNITY" ]; then
-            if snmptrap -v 2c -c "$SNMP_COMMUNITY" 127.0.0.1:162 "" "1.3.6.1.4.1.9.9.41.1.2.3.1.2.1" "1.3.6.1.4.1.9.9.41.1.2.3.1.2.1" s "TROUBLESHOOT_TEST" >/dev/null 2>&1; then
+            if snmptrap -v 2c -c "$SNMP_COMMUNITY" ${TRAP_TEST_TARGET}:${PORT_SNMP_TRAP} "" "$TRAP_TEST_OID" "$TRAP_TEST_OID" s "TROUBLESHOOT_TEST" >/dev/null 2>&1; then
                 print_ok "Test trap sent successfully"
                 sleep 2
                 if tail -1 "$TRAP_LOG" 2>/dev/null | grep -q "TROUBLESHOOT_TEST"; then
@@ -412,10 +411,10 @@ check_network() {
     
     print_section "Port Mappings"
     echo "Expected port mappings:"
-    echo "  80:8080 (Web interface)"
-    echo "  443:8443 (Web interface HTTPS)"
-    echo "  10051:10051 (Zabbix server)"
-    echo "  162:1162/udp (SNMP traps)"
+    echo "  ${PORT_WEB_HTTP}:${PORT_WEB_INTERNAL} (Web interface)"
+    echo "  ${PORT_WEB_HTTPS}:${PORT_HTTPS_INTERNAL} (Web interface HTTPS)"
+    echo "  ${PORT_ZABBIX_SERVER}:${PORT_ZABBIX_SERVER} (Zabbix server)"
+    echo "  ${PORT_SNMP_TRAP}:${PORT_TRAP_INTERNAL}/udp (SNMP traps)"
     echo ""
     echo "Active port mappings:"
     podman pod inspect "${POD_NAME}" --format '{{range .InfraConfig.PortBindings}}{{.}}{{println}}{{end}}' 2>/dev/null | sed 's/^/  /' || print_warn "Could not retrieve port mappings"

@@ -9,13 +9,10 @@ else
     exit 1
 fi
 
-# Set default version if not specified
-ZABBIX_VERSION=${ZABBIX_VERSION:-7.4.6}
-POD_NAME=${POD_NAME:-zabbix-pod}
 echo "[*] Force-Cleaning and Restoring Pod: ${POD_NAME} (Zabbix v${ZABBIX_VERSION})"
 
 # 1. Force remove stuck containers
-CONTAINERS=("zabbix-web-nginx-pgsql" "zabbix-agent" "zabbix-server-pgsql" "zabbix-snmptraps" "postgres-server")
+CONTAINERS=("${CONTAINER_WEB}" "${CONTAINER_AGENT}" "${CONTAINER_SERVER}" "${CONTAINER_SNMPTRAPS}" "${CONTAINER_POSTGRES}")
 for container in "${CONTAINERS[@]}"; do
     echo "[*] Cleaning $container..."
     podman rm -f "$container" 2>/dev/null
@@ -25,7 +22,7 @@ done
 if ! podman pod exists "${POD_NAME}"; then
     echo "[*] Pod ${POD_NAME} is missing. Recreating..."
     podman pod create --name "${POD_NAME}" --restart always \
-        -p 80:8080 -p 443:8443 -p 10051:10051 -p 162:1162/udp
+        -p ${PORT_WEB_HTTP}:${PORT_WEB_INTERNAL} -p ${PORT_WEB_HTTPS}:${PORT_HTTPS_INTERNAL} -p ${PORT_ZABBIX_SERVER}:${PORT_ZABBIX_SERVER} -p ${PORT_SNMP_TRAP}:${PORT_TRAP_INTERNAL}/udp
 else
     echo "[OK] Pod ${POD_NAME} exists."
 fi
@@ -38,36 +35,36 @@ find "$INSTALL_DIR" -name "*.sock" -delete 2>/dev/null
 echo "[*] Redeploying containers..."
 
 # Postgres
-podman run -d --name postgres-server --pod "$POD_NAME" --restart always \
-    -e POSTGRES_USER=zabbix -e POSTGRES_PASSWORD="$DB_PASSWORD" -e POSTGRES_DB=zabbix \
+podman run -d --name ${CONTAINER_POSTGRES} --pod "$POD_NAME" --restart always \
+    -e POSTGRES_USER="$POSTGRES_USER" -e POSTGRES_PASSWORD="$DB_PASSWORD" -e POSTGRES_DB="$POSTGRES_DB" \
     -v "$INSTALL_DIR/postgres:/var/lib/postgresql/data:Z,U" \
-    postgres:16-alpine
+    postgres:$POSTGRES_VERSION
 
 # SNMP Traps
-podman run -d --name zabbix-snmptraps --pod "$POD_NAME" --restart always \
+podman run -d --name ${CONTAINER_SNMPTRAPS} --pod "$POD_NAME" --restart always \
     -e ZBX_SNMP_COMMUNITY="$SNMP_COMMUNITY" \
     -v "$INSTALL_DIR/snmptraps:/var/lib/zabbix/snmptraps:z,U" \
     -v "$INSTALL_DIR/mibs:/var/lib/zabbix/mibs:z,U" \
     zabbix/zabbix-snmptraps:alpine-${ZABBIX_VERSION}
 
 # Zabbix Server
-podman run -d --name zabbix-server-pgsql --pod "$POD_NAME" --restart always \
-    -e DB_SERVER_HOST=127.0.0.1 -e POSTGRES_USER=zabbix -e POSTGRES_PASSWORD="$DB_PASSWORD" -e POSTGRES_DB=zabbix \
+podman run -d --name ${CONTAINER_SERVER} --pod "$POD_NAME" --restart always \
+    -e DB_SERVER_HOST=127.0.0.1 -e POSTGRES_USER="$POSTGRES_USER" -e POSTGRES_PASSWORD="$DB_PASSWORD" -e POSTGRES_DB="$POSTGRES_DB" \
     -v "$INSTALL_DIR/snmptraps:/var/lib/zabbix/snmptraps:z,U" \
     -v "$INSTALL_DIR/mibs:/var/lib/zabbix/mibs:z,U" \
     -v "$INSTALL_DIR/extra_cfg/zabbix_server_snmp_traps.conf:/etc/zabbix/zabbix_server_snmp_traps.conf:Z" \
     zabbix/zabbix-server-pgsql:alpine-${ZABBIX_VERSION}
 
 # Zabbix Agent
-podman run -d --name zabbix-agent --pod "$POD_NAME" --restart always \
-    -e ZBX_SERVER_HOST=127.0.0.1 -e ZBX_HOSTNAME="Zabbix server" \
+podman run -d --name ${CONTAINER_AGENT} --pod "$POD_NAME" --restart always \
+    -e ZBX_SERVER_HOST=127.0.0.1 -e ZBX_HOSTNAME="$ZBX_AGENT_HOSTNAME" \
     -e ZBX_AGENT2_PLUGINS_SOCKET=/tmp/zabbix-agent2-reboot.sock \
     zabbix/zabbix-agent2:alpine-${ZABBIX_VERSION}
 
 # Web
-podman run -d --name zabbix-web-nginx-pgsql --pod "$POD_NAME" --restart always \
-    -e ZBX_SERVER_HOST=127.0.0.1 -e DB_SERVER_HOST=127.0.0.1 -e POSTGRES_USER=zabbix \
-    -e POSTGRES_PASSWORD="$DB_PASSWORD" -e POSTGRES_DB=zabbix \
+podman run -d --name ${CONTAINER_WEB} --pod "$POD_NAME" --restart always \
+    -e ZBX_SERVER_HOST=127.0.0.1 -e DB_SERVER_HOST=127.0.0.1 -e POSTGRES_USER="$POSTGRES_USER" \
+    -e POSTGRES_PASSWORD="$DB_PASSWORD" -e POSTGRES_DB="$POSTGRES_DB" \
     zabbix/zabbix-web-nginx-pgsql:alpine-${ZABBIX_VERSION}
 
 # 5. Regenerate and enable systemd service for boot persistence
@@ -152,9 +149,9 @@ fi
 # Reload systemd and enable all services
 sudo systemctl daemon-reload
 sudo systemctl enable "${SERVICE_NAME}" 2>/dev/null || true
-sudo systemctl enable container-postgres-server.service container-zabbix-snmptraps.service \
-    container-zabbix-server-pgsql.service container-zabbix-agent.service \
-    container-zabbix-web-nginx-pgsql.service 2>/dev/null || true
+sudo systemctl enable container-${CONTAINER_POSTGRES}.service container-${CONTAINER_SNMPTRAPS}.service \
+    container-${CONTAINER_SERVER}.service container-${CONTAINER_AGENT}.service \
+    container-${CONTAINER_WEB}.service 2>/dev/null || true
 sudo systemctl restart "${SERVICE_NAME}" 2>/dev/null || true
 
 echo "------------------------------------------------------------"
